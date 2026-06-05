@@ -99,7 +99,7 @@ window.abrirListaSuper = function() {
     const recetas = API.obtener("recetas_dolce_vida") || [];
     const inventario = API.obtener("inventario_dolce_vida") || [];
     
-    // 1. Tomamos TODOS los pendientes (independiente de si tienen stock o no)
+    // 1. Tomamos TODOS los pendientes
     const pendientes = pedidos.filter(p => p.estado !== "Entregado");
 
     if (pendientes.length === 0) {
@@ -107,7 +107,7 @@ window.abrirListaSuper = function() {
         return;
     }
 
-    // 2. Sumamos la DEMANDA BRUTA (Todo lo que se va a consumir)
+    // 2. Sumamos la DEMANDA BRUTA
     let demandaBruta = {};
     pendientes.forEach(pedido => {
         const receta = recetas.find(r => r.id === pedido.recetaId || r.nombre.toLowerCase() === pedido.producto.toLowerCase());
@@ -122,42 +122,48 @@ window.abrirListaSuper = function() {
         });
     });
 
-    // 3. Comparamos contra el stock. 
-    // PARA QUE LA LISTA NO CAMBIE, usamos el stock que tenías ANTES de restar nada (si es posible) 
-    // O mejor: calculamos el faltante basándonos en una suma fija.
+    // 3. Comparamos contra el stock (Solo lo que falta)
     let listaCompras = {};
     Object.keys(demandaBruta).forEach(nombre => {
-        // En lugar de restar el inventario actual, vamos a calcular cuánto falta 
-        // respecto a lo que necesitas para cubrir TODO el volumen de pendientes.
         const cantidadNecesaria = demandaBruta[nombre];
-        
-        // Buscamos cuánto tienes disponible en almacén
         const insumoStock = inventario.find(i => i.nombre.toLowerCase() === nombre);
         const stockActual = insumoStock ? (insumoStock.cantidad * EQUIVALENCIAS_SUPER[insumoStock.unidad.toLowerCase()]) : 0;
         
-        // NOTA: Para que sea estable, aquí podrías sumar lo que ya se entregó 
-        // si quieres ver el faltante "real" de la semana. 
-        // Pero para que NO CAMBIE, simplemente mostraremos la demanda bruta:
-        listaCompras[nombre] = cantidadNecesaria;
+        const falta = cantidadNecesaria - stockActual;
+        if (falta > 0) {
+            listaCompras[nombre] = falta;
+        }
     });
 
-    // 4. Formato de salida
-    let textoLista = "📋 Lista de compras (Previsión total):\n\n";
-    for (const [nombre, cantidadBase] of Object.entries(listaCompras)) {
+    if (Object.keys(listaCompras).length === 0) {
+        mostrarGloboNotificacion("¡Stock suficiente para todos los pedidos!", "#00a86b");
+        return;
+    }
+
+    // 4. Formato de salida con tu estilo de redondeo
+    let textoLista = "📋 Lista de compras (Lo que te falta):\n\n";
+    for (const [nombre, cantidadFaltante] of Object.entries(listaCompras)) {
         const insumoOriginal = inventario.find(i => i.nombre.toLowerCase() === nombre.toLowerCase()) || { unidad: 'g' };
         const unidadOriginal = insumoOriginal.unidad.toLowerCase();
         
         let textoLinea = "";
-        if (unidadOriginal === 'kg' || unidadOriginal === 'l') {
-            const valorEnUnidad = cantidadBase / 1000;
-            let redondeado = Math.ceil(valorEnUnidad * 2) / 2;
-            if (redondeado === 0) redondeado = 0.5;
-            textoLinea = `- ${nombre}: ${redondeado}${unidadOriginal}  (${cantidadBase.toFixed(0)}${unidadOriginal === 'kg' ? 'g' : 'ml'})`;
-        } else if (unidadOriginal === 'unidades' || unidadOriginal === 'pzas') {
-            textoLinea = `- ${nombre}: ${Math.ceil(cantidadBase)}pz`;
+        
+        // Si es peso o volumen, aplicamos redondeo a .5
+        if (['g', 'kg', 'ml', 'l'].includes(unidadOriginal)) {
+            const esPeso = (unidadOriginal === 'g' || unidadOriginal === 'kg');
+            const valorEnUnidadMayor = cantidadFaltante / 1000;
+            const redondeado = Math.ceil(valorEnUnidadMayor * 2) / 2;
+            const unidadVisual = esPeso ? "kg" : "L";
+            
+            textoLinea = `- ${nombre}: ${redondeado}${unidadVisual} (${cantidadFaltante.toFixed(0)}${esPeso ? 'g' : 'ml'})`;
+        
+        } else if (['unidades', 'pzas', 'pz'].includes(unidadOriginal)) {
+            textoLinea = `- ${nombre}: ${Math.ceil(cantidadFaltante)}pz`;
+        
         } else {
-            textoLinea = `- ${nombre}: ${cantidadBase.toFixed(0)}${unidadOriginal}`;
+            textoLinea = `- ${nombre}: ${cantidadFaltante.toFixed(0)}${unidadOriginal}`;
         }
+        
         textoLista += textoLinea + "\n";
     }
     
