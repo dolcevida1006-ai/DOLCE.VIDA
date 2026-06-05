@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Dolce.vida">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>dolce.vida - Almacén de Insumos</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+    <header class="app-header">
+        <h1>📦 Dolce.vida</h1>
+        <p>Control de Stock</p>
+    </header>
+
+    <main class="app-container">
+        <section class="dashboard-section">
+            <h2>📥 Registrar Nuevo Insumo</h2>
+            <div class="form-section">
+                <form id="form-nuevo-insumo" class="styled-form">
+                    <div class="form-group">
+                        <label for="insumo-nombre">Nombre del Insumo:</label>
+                        <input type="text" id="insumo-nombre" placeholder="Ej. Harina, Huevos, Leche" required>
+                    </div>
+                    
+                    <div style="display: flex; gap: 12px;">
+                        <div class="form-group" style="flex: 1;">
+                            <label for="insumo-cantidad">Cantidad Inicial:</label>
+                            <input type="number" id="insumo-cantidad" placeholder="Ej. 5" step="1" min="1" required>
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label for="insumo-unidad">Unidad:</label>
+                            <select id="insumo-unidad" required>
+                                <option value="g">g (Gramos)</option>
+                                <option value="kg">kg (Kilos)</option>
+                                <option value="ml">ml (Mililitros)</option>
+                                <option value="l">L (Litros)</option>
+                                <option value="unidades">pzas (Piezas)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn-submit">➕ Agregar a Almacén</button>
+                </form>
+            </div>
+        </section>
+
+        <section class="dashboard-section">
+            <button type="button" class="btn-fancy-add" onclick="abrirListaSuper()">
+                🛒 Generar y Copiar Lista del Súper
+            </button>
+        </section>
+
+        <section class="dashboard-section">
+            <h2>📋 Materiales en Existencia</h2>
+            <div id="lista-inventario" class="cards-grid">
+                </div>
+        </section>
+    </main>
+
+    <div id="modal-lista-super" class="bottom-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 style="margin: 0; color: var(--secondary-color);">📋 Lista del Súper</h2>
+                <button type="button" class="btn-close" onclick="cerrarListaSuper()">&times;</button>
+            </div>
+            <p style="font-size: 0.88rem; color: #666; margin-bottom: 15px; line-height: 1.4;">
+                Los insumos faltantes han sido calculados con redondeo completo. ¡Ya se copiaron a tu portapapeles! 📋✨
+            </p>
+            <div id="contenido-lista-super"></div>
+            <button type="button" class="btn-submit" onclick="cerrarListaSuper()" style="margin-top: 20px;">
+                ¡Entendido!
+            </button>
+        </div>
+    </div>
+
+    <div id="toast-copiado" style="position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); background: var(--text-color); color: white; padding: 12px 22px; border-radius: 25px; font-size: 0.85rem; font-weight: bold; z-index: 2000; box-shadow: 0 4px 12px rgba(0,0,0,0.15); opacity: 0; transition: opacity 0.3s ease; pointer-events: none;">
+        📋 ¡Lista copiada al portapapeles!
+    </div>
+
+    <nav class="app-nav">
+        <a href="index.html" class="nav-item">🏠 Inicio</a>
+        <a href="pedidos.html" class="nav-item">📋 Pedidos</a>
+        <a href="inventario.html" class="nav-item active">📦 Stock</a>
+        <a href="recetas.html" class="nav-item">📖 Recetas</a>
+        <a href="analisis.html" class="nav-item">📊 Análisis</a>
+    </nav>
+
+    <script src="js/api.js"></script>
+    <script src="js/inventario.js"></script>
+</body>
+</html>

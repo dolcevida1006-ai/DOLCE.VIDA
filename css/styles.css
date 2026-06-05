@@ -1,0 +1,708 @@
+/* ==========================================================================
+   VARIABLES DE DISEÑO (Colores pasteleros y limpios)
+   ========================================================================== */
+:root {
+    --bg-color: #fcf8f2;
+    --primary-color: #ff8da1;
+    --secondary-color: #6c5ce7;
+    --text-color: #2d3436;
+    --card-bg: #ffffff;
+    --danger-color: #ff7675;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    padding-bottom: 80px; /* Espacio para que la barra de navegación no tape el contenido */
+}
+
+/* ==========================================================================
+   ESTILOS GENERALES Y ENCABEZADO
+   ========================================================================== */
+.app-header {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 20px;
+    text-align: center;
+    border-radius: 0 0 20px 20px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.app-container {
+    padding: 20px;
+}
+
+.dashboard-section {
+    margin-bottom: 25px;
+}
+
+.dashboard-section h2 {
+    font-size: 1.2rem;
+    margin-bottom: 15px;
+    color: #555;
+}
+
+/* ==========================================================================
+   TARJETAS DE PEDIDOS / INVENTARIO
+   ========================================================================== */
+.cards-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.card {
+    background: var(--card-bg);
+    padding: 15px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    border-left: 5px solid var(--primary-color);
+}
+
+.card-urgente {
+    border-left-color: var(--danger-color);
+    background-color: #fff5f5;
+}
+
+.card h3 {
+    font-size: 1.1rem;
+    margin-bottom: 5px;
+}
+
+.card p {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.badge {
+    display: inline-block;
+    padding: 3px 8px;
+    background: #dfe6e9;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+/* Simulación de Gráficas/Barras de progreso */
+.chart-placeholder {
+    background: white;
+    padding: 15px;
+    border-radius: 12px;
+}
+
+.progress-bar {
+    margin-top: 10px;
+}
+
+.progress-bar .label {
+    font-size: 0.85rem;
+    display: block;
+    margin-bottom: 2px;
+}
+
+.bar-bg {
+    background: #eee;
+    height: 10px;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.bar-fill {
+    background: #55efc4;
+    height: 100%;
+}
+
+.bar-fill.peligro {
+    background: var(--danger-color);
+}
+
+/* ==========================================================================
+   BARRA DE NAVEGACIÓN FIJA INFERIOR (ESTILO APP NATIVA)
+   ========================================================================== */
+.app-nav {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 600px;
+    background: white;
+    display: flex;
+    justify-content: space-around;
+    padding: 12px 0;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+    z-index: 2500;
+}
+
+.nav-item {
+    text-decoration: none;
+    color: #b2bec3;
+    font-size: 0.85rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-weight: bold;
+}
+
+.nav-item.active {
+    color: var(--primary-color);
+}
+
+/* Versión Escritorio */
+@media (min-width: 768px) {
+    .app-container {
+        max-width: 600px;
+        margin: 0 auto;
+    }
+}
+
+/* ==========================================================================
+   FORMULARIOS
+   ========================================================================== */
+.form-section {
+    background: white;
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.form-group {
+    margin-bottom: 18px;
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #555;
+}
+
+.form-group input, 
+.form-group select, 
+.form-group textarea {
+    width: 100%;
+    padding: 12px;
+    font-size: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: #fafafa;
+    color: var(--text-color);
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.form-group input:focus, 
+.form-group select:focus, 
+.form-group textarea:focus {
+    border-color: var(--primary-color);
+    background-color: #fff;
+}
+
+.btn-submit {
+    width: 100%;
+    padding: 15px;
+    background-color: var(--secondary-color);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(108, 92, 231, 0.2);
+    transition: background-color 0.2s;
+}
+
+.btn-submit:active {
+    background-color: #5b4bc4;
+}
+
+/* ==========================================================================
+   SISTEMA SWIPE GESTURES (DESLIZAR)
+   ========================================================================== */
+.swipe-container {
+    position: relative;
+    overflow: hidden;
+    border-radius: 12px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.swipe-actions {
+    position: absolute;
+    top: 0;
+    right: 0;
+    height: 100%;
+    display: flex;
+    gap: 8px;
+    padding: 10px;
+    z-index: 1;
+}
+
+.swipe-actions-left {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    display: flex;
+    gap: 8px;
+    padding: 10px;
+    z-index: 1;
+}
+
+.btn-action {
+    height: 100%;
+    width: 65px;
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-size: 0.8rem;
+    font-weight: bold;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    cursor: pointer;
+}
+
+.btn-preparado { background-color: #fdcb6e; color: #2d3436; }
+.btn-entregado { background-color: #55efc4; color: #2d3436; }
+.btn-editar { background-color: #74b9ff; color: white; }
+.btn-borrar-stock { background-color: var(--danger-color); color: white; }
+
+/* Capas interactivas móviles según vista */
+.swipe-container .card,
+.swipe-container .card-inventario,
+.swipe-container .card-receta {
+    position: relative;
+    z-index: 2;
+    margin-bottom: 0;
+    transition: transform 0.3s ease;
+    touch-action: pan-y;
+}
+
+/* Desplazamientos específicos */
+.swipe-container.swiped .card { transform: translateX(-150px); }
+.swipe-container.swiped-right .card { transform: translateX(80px); }
+.swipe-container.swiped .card-inventario { transform: translateX(-80px); }
+.swipe-container.swiped .card-receta { transform: translateX(-150px); }
+
+.card-preparado {
+    border-left-color: #fdcb6e !important;
+    background-color: #fffdf5 !important;
+    opacity: 0.9;
+}
+
+/* ==========================================================================
+   MODALES (ESTILO DESDE ABAJO)
+   ========================================================================== */
+.btn-fancy-add {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, var(--primary-color), #fd79a8);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: bold;
+    box-shadow: 0 4px 15px rgba(255, 141, 161, 0.4);
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+.btn-fancy-add:active { transform: scale(0.98); }
+
+.bottom-modal {
+    position: fixed;
+    bottom: -100%;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    z-index: 200;
+    display: flex;
+    align-items: flex-end;
+    transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1);
+}
+
+.bottom-modal.open { bottom: 0; }
+
+.modal-content {
+    background: white;
+    width: 100%;
+    max-height: 85vh;
+    border-radius: 24px 24px 0 0;
+    padding: 24px;
+    overflow-y: auto;
+    box-shadow: 0 -5px 20px rgba(0,0,0,0.15);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.btn-close {
+    background: #f1f2f6;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+/* Componentes dinámicos de recetas */
+.fila-ingrediente {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+    animation: aparecerFila 0.3s ease;
+}
+
+@keyframes aparecerFila {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.btn-secundario-fancy {
+    background: none;
+    border: 2px dashed var(--secondary-color);
+    color: var(--secondary-color);
+    padding: 10px;
+    width: 100%;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 5px;
+}
+
+.btn-eliminar-ing {
+    background: #ffeaa7;
+    border: none;
+    padding: 0 12px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.detalles-ingredientes {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+    background: #fafafa;
+    border-radius: 8px;
+    padding: 0 10px;
+}
+
+.detalles-ingredientes.expandido {
+    max-height: 300px;
+    padding: 10px;
+    margin-top: 10px;
+    border: 1px solid #eee;
+}
+
+.receta-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 12px;
+}
+
+.btn-toggle-view {
+    background: none;
+    border: none;
+    color: var(--secondary-color);
+    font-weight: bold;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.btn-borrar-receta {
+    background: none;
+    border: none;
+    color: var(--danger-color);
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+/* ==========================================================================
+   MÓDULO DE ANALÍTICA Y GLOBOS FLOTANTES (POP-UPS)
+   ========================================================================== */
+.kpi-minimal-container {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    margin: 20px 0;
+    padding: 10px 0;
+}
+
+.kpi-circle-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.kpi-circle-btn:hover {
+    transform: scale(1.12);
+}
+
+.kpi-emoji {
+    font-size: 2rem;
+    background: #ffffff;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
+    border: 1px solid #f1f2f6;
+}
+
+.kpi-tag {
+    margin-top: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #7f8c8d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Fondo difuminado para el globo del centro */
+.popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(45, 52, 54, 0.3);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 3000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.popup-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.popup-card {
+    background: #ffffff;
+    padding: 30px 20px;
+    border-radius: 20px;
+    width: 75%;
+    max-width: 300px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+    position: relative;
+    text-align: center;
+    transform: scale(0.8) translateY(20px);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.popup-overlay.active .popup-card {
+    transform: scale(1) translateY(0);
+}
+
+.popup-close {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 1.5rem;
+    color: #b2bec3;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+.popup-close:hover { color: #2d3436; }
+
+/* Contenedores estructurales de Análisis */
+.filtro-panel {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+}
+
+.filtro-titulo {
+    margin: 0 0 12px 0;
+    font-size: 1rem;
+    color: #2d3436;
+}
+
+.filtro-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.filtro-fechas-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.grafico-card {
+    padding: 16px;
+    border-radius: 12px;
+    background: #ffffff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+}
+
+.grafico-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.btn-toggle-container {
+    background: #f1f2f6;
+    padding: 3px;
+    border-radius: 20px;
+    display: flex;
+}
+
+.btn-toggle {
+    background: transparent;
+    color: #7f8c8d;
+    border: none;
+    padding: 5px 12px;
+    border-radius: 15px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-toggle.active {
+    background: var(--secondary-color);
+    color: white;
+}
+
+.canvas-contenedor {
+    height: 220px;
+    position: relative;
+    width: 100%;
+}
+
+/* Animaciones */
+.animate-fade-in {
+    animation: slideUpFade 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes slideUpFade {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+/* 1. Arreglo de Scroll en Modal */
+.modal-content {
+    display: flex;
+    flex-direction: column;
+    max-height: 90vh; /* Ajuste para mayor espacio */
+}
+
+#form-nueva-receta {
+    flex-grow: 1;
+    overflow-y: auto; /* Esto permite scroll dentro del formulario */
+    padding-right: 5px;
+}
+
+/* 2. Estilo de globos para ingredientes */
+.fila-ingrediente {
+    background: #f8f9fa;
+    padding: 10px;
+    border-radius: 20px; /* Forma de globo */
+    border: 1px solid #e9ecef;
+    margin-bottom: 12px;
+}
+
+/* 3. Estilo elegante para la X */
+.btn-eliminar-ing {
+    background: #ff7675;
+    color: white;
+    border: none;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+.btn-eliminar-ing:hover { background: #d63031; }
+
+/* Asegurar que el botón de guardar siempre sea visible */
+.btn-submit {
+    position: sticky;
+    bottom: 0;
+    margin-top: 20px;
+}
+
+/* Estilo de globos para ingredientes en rosa pastel */
+.fila-ingrediente {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #FFD1DC; /* Rosa pastel */
+    padding: 10px;
+    border-radius: 25px; /* Forma de globo */
+    margin-bottom: 10px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* Ajuste de inputs para que quepan bien dentro del globo */
+.fila-ingrediente select, 
+.fila-ingrediente input {
+    border: none;
+    padding: 8px;
+    border-radius: 15px;
+    background: white;
+}
+
+/* Botón de eliminar (la X) */
+.btn-eliminar-ing {
+    background: #ff7675;
+    color: white;
+    border: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    flex-shrink: 0; /* Evita que la X se aplaste */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+/* Asegurar que el contenedor tenga scroll y padding */
+#contenedor-insumos-dinamicos {
+    padding: 10px 0;
+}

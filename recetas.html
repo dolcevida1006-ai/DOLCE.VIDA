@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Dolce.vida">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>dolce.vida - Recetario</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+    <header class="app-header">
+        <h1>📖 Dolce.vida</h1>
+        <p>Libro de Recetas y Productos</p>
+    </header>
+
+    <main class="app-container">
+        
+        <button id="btn-abrir-modal" class="btn-fancy-add">✨ + Crear Nueva Receta</button>
+
+        <section class="dashboard-section" style="margin-top: 20px;">
+            <h2>Tus Productos y Fórmulas</h2>
+            <div id="lista-recetas" class="cards-grid">
+            </div>
+        </section>
+
+        <!-- FORMULARIO FLOTANTE -->
+        <div id="modal-receta" class="bottom-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>🧁 Nueva Receta</h3>
+                    <button id="btn-cerrar-modal" class="btn-close">✕</button>
+                </div>
+                
+                <form id="form-nueva-receta">
+                    <div class="form-group">
+                        <label for="receta-nombre">Nombre del Producto:</label>
+                        <input type="text" id="receta-nombre" placeholder="Ej. Pastel de Tres Leches" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="receta-porciones">¿Para cuántas piezas/porciones rinde?</label>
+                        <input type="number" id="receta-porciones" placeholder="Ej. 12" value="1" required>
+                    </div>
+
+                    <div class="insumos-receta-section">
+                        <h4>Ingredientes Necesarios:</h4>
+                        <div id="contenedor-insumos-dinamicos">
+                        </div>
+                        <button type="button" id="btn-agregar-ingrediente" class="btn-secundario-fancy">➕ Agregar Ingrediente</button>
+                    </div>
+
+                    <button type="submit" class="btn-submit" style="margin-top: 20px;">📖 Guardar en Recetario</button>
+                </form>
+            </div>
+        </div>
+
+    </main>
+
+    <nav class="app-nav">
+        <a href="index.html" class="nav-item">🏠 Inicio</a>
+        <a href="pedidos.html" class="nav-item">📋 Pedidos</a>
+        <a href="inventario.html" class="nav-item">📦 Stock</a>
+        <a href="recetas.html" class="nav-item active">📖 Recetas</a>
+        <a href="analisis.html" class="nav-item">📊 Análisis</a>
+    </nav>
+
+    <script src="js/api.js"></script>
+    <script src="js/recetas.js"></script>
+</body>
+</html>

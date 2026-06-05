@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <link rel="manifest" href="manifest.json">
+
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Dolce.vida">
+
+    <link rel="apple-touch-icon" href="icon-192.png">
+    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>dolce.vida - Analítica</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+    <header class="app-header">
+        <h1>📊 Dolce.vida</h1>
+        <p>Inteligencia de negocio y predicción de stock</p>
+    </header>
+
+    <main class="app-container">
+
+        <section class="kpi-minimal-container animate-fade-in">
+            <div class="kpi-circle-btn" onclick="abrirPopUp('pedidos')">
+                <div class="kpi-emoji">🎂</div>
+                <span class="kpi-tag">Pedidos</span>
+            </div>
+            <div class="kpi-circle-btn" onclick="abrirPopUp('producto')">
+                <div class="kpi-emoji">👑</div>
+                <span class="kpi-tag">Top</span>
+            </div>
+            <div class="kpi-circle-btn" onclick="abrirPopUp('mes')">
+                <div class="kpi-emoji">📅</div>
+                <span class="kpi-tag">Mes</span>
+            </div>
+        </section>
+
+        <div id="kpi-popup-overlay" class="popup-overlay" onclick="cerrarPopUp()">
+            <div class="popup-card" onclick="event.stopPropagation()">
+                <span class="popup-close" onclick="cerrarPopUp()">×</span>
+                <div id="popup-contenido"></div>
+            </div>
+        </div>
+
+        <section class="dashboard-section">
+            <h2>🚨 Alertas Preventivas de Almacén</h2>
+            <div id="contenedor-alertas-predictivas"></div>
+        </section>
+
+        <section class="dashboard-section">
+            <h2>🔍 Filtrar Análisis Personalizado</h2>
+            <div class="card" style="padding: 16px;">
+                <div class="filtro-form">
+                    <div class="form-group" style="display: flex; flex-direction: column; gap: 4px;">
+                        <label style="font-weight: bold; color: #333;">🎯 Producto o Receta:</label>
+                        <select id="filtro-producto" onchange="procesarAnalisisYGraficos()">
+                            <option value="todos">✨ Todos los productos</option>
+                        </select>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 15px;">
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <label style="font-size: 0.85rem; font-weight: bold; color: #333;">📅 Desde:</label>
+                            <input type="date" id="filtro-fecha-inicio" onchange="procesarAnalisisYGraficos()" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 0.95rem; background-color: #f8f9fa; box-sizing: border-box;">
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <label style="font-size: 0.85rem; font-weight: bold; color: #333;">📅 Hasta:</label>
+                            <input type="date" id="filtro-fecha-fin" onchange="procesarAnalisisYGraficos()" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 0.95rem; background-color: #f8f9fa; box-sizing: border-box;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="dashboard-section">
+                    <div class="grafico-header" style="margin-bottom: 15px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <h2>📈 Histograma de Pedidos</h2>
+                            <div class="btn-toggle-container">
+                                <button id="btn-vista-semanal" class="btn-toggle active" onclick="cambiarFiltroGrafico('semanal')">Semanal</button>
+                                <button id="btn-vista-mensual" class="btn-toggle" onclick="cambiarFiltroGrafico('mensual')">Mensual</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="canvas-contenedor" style="position: relative; width: 100%; height: 260px;">
+                            <canvas id="graficoAnalisis"></canvas>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 20px; display: flex; justify-content: center;">
+                        <button onclick="exportarVentasExcel()" style="width: 90%; padding: 14px; background: #ff85a2; color: white; border: none; border-radius: 25px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.2s;">
+                            📊 Exportar Reporte de Ventas
+                        </button>
+                    </div>
+        </section>
+        
+    </main>
+
+    <nav class="app-nav">
+        <a href="index.html" class="nav-item">🏠 Inicio</a>
+        <a href="pedidos.html" class="nav-item">📋 Pedidos</a>
+        <a href="inventario.html" class="nav-item">📦 Stock</a>
+        <a href="recetas.html" class="nav-item">📖 Recetas</a>
+        <a href="analisis.html" class="nav-item active">📊 Análisis</a>
+    </nav>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/analisis.js"></script>
+</body>
+</html>

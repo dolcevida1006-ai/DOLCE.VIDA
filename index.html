@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <link rel="manifest" href="manifest.json">
+
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Dolce.vida">
+
+    <link rel="apple-touch-icon" href="icon-192.png">
+    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dolce.vida - Gestión de Pastelería</title>
+    <link rel="stylesheet" href="css/styles.css">
+    </head>
+<body>
+
+    <header class="app-header">
+        <h1>🧁 Dolce.vida</h1>
+        <p>Panel de Control</p>
+    </header>
+
+    <main class="app-container">
+        
+        <section class="dashboard-section">
+            <h2>🚨 Pedidos Pendientes</h2>
+            <div id="lista-pedidos-pendientes" class="cards-grid">
+                <div class="card card-urgente">
+                    <h3>Pastel de Tres Leches</h3>
+                    <p><strong>Fecha:</strong> Hoy - 4:00 PM</p>
+                    <p><strong>Cliente:</strong> María G.</p>
+                    <span class="badge">Pendiente</span>
+                </div>
+                <div class="card">
+                    <h3>12 Cupcakes de Vainilla</h3>
+                    <p><strong>Fecha:</strong> Mañana - 12:00 PM</p>
+                    <p><strong>Cliente:</strong> Juan P.</p>
+                    <span class="badge">En proceso</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="dashboard-section">
+            <h2>📊 Estado de Insumos</h2>
+            <div class="card" id="lista-inventario-progreso">
+                <p style="text-align:center; color:#888;">Cargando balance de almacén...</p>
+            </div>
+        </section>
+
+    </main>
+    
+    <section class="dashboard-section" style="margin-bottom: 80px;">
+        <h2>💾 Datos (Copia de Seguridad)</h2>
+        <div class="card" style="display: flex; justify-content: center; gap: 10px; padding: 15px;">
+            <button onclick="descargarDatos()" style="background: #ffb7d5; color: #5c2a3d; padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; flex: 1;">
+                📥 Descargar
+            </button>
+            
+            <button onclick="document.getElementById('input-subir-datos').click()" style="background: #ff007f; color: white; padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; flex: 1;">
+                📤 Subir
+            </button>
+            
+            <input type="file" id="input-subir-datos" style="display: none;" accept=".json" onchange="subirDatos(event)">
+        </div>
+    </section>
+    <nav class="app-nav">
+        <a href="index.html" class="nav-item active">🏠 Inicio</a>
+        <a href="pedidos.html" class="nav-item">📋 Pedidos</a>
+        <a href="inventario.html" class="nav-item">📦 Stock</a>
+        <a href="recetas.html" class="nav-item">📖 Recetas</a>
+        <a href="analisis.html" class="nav-item">📊 Análisis</a>
+    </nav>
+
+    <script src="js/api.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
