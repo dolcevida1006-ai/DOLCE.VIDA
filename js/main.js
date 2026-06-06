@@ -152,6 +152,7 @@ function renderizarPedidos(analisisPedidos) {
         actionsLeft.className = "swipe-actions-left";
         actionsLeft.innerHTML = `
             <button class="btn-action btn-editar" onclick="irAEditarPedido(${pedido.id})">✏️<br>Editar</button>
+            <button class="btn-action btn-eliminar" onclick="eliminarPedido(${pedido.id})" style="background: #ff7675; color: white;">🗑️<br>Borrar</button>
         `;
 
         const card = document.createElement("div");
@@ -367,4 +368,70 @@ window.subirDatos = function(event) {
         } catch (error) { alert("❌ Error en formato."); }
     };
     reader.readAsText(file);
+};
+
+window.eliminarPedido = function(id) {
+    // Usamos la misma lógica de confirmación que en recetas
+    confirmarAccion("¿Estás seguro de que quieres eliminar este pedido? Esta acción no se puede deshacer.", () => {
+        let pedidos = API.obtener("pedidos_dolce_vida") || [];
+        pedidos = pedidos.filter(p => p.id !== id);
+        
+        API.guardar("pedidos_dolce_vida", pedidos);
+        
+        // Refrescamos la pantalla
+        inicializarPantallaInicio();
+        
+        // Notificación opcional (si tu sistema la tiene)
+        if (typeof mostrarGloboNotificacion === 'function') {
+            mostrarGloboNotificacion("Pedido eliminado correctamente.", "#ff7675");
+        }
+    });
+};
+
+window.confirmarAccion = function(mensaje, onConfirm) {
+    let overlay = document.getElementById('modal-confirmacion-overlay');
+    
+    // Si no existe, lo creamos por primera vez
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'modal-confirmacion-overlay';
+        overlay.style.cssText = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); display:flex; align-items:center; justify-content:center; z-index:2000; opacity:0; pointer-events:none; transition:opacity 0.2s;";
+        overlay.innerHTML = `
+            <div style="background:white; padding:25px; border-radius:15px; width:85%; max-width:300px; text-align:center; box-shadow: 0 10px 25px rgba(0,0,0,0.3);">
+                <h3 style="margin-top:0;">⚠️ Confirmar</h3>
+                <p id="mensaje-confirm" style="color:#555; margin: 15px 0;"></p>
+                <div style="display:flex; justify-content:space-between; margin-top:20px; gap: 10px;">
+                    <button id="btn-no" style="flex:1; padding:10px; border:none; border-radius:8px; background:#eee; cursor:pointer;">No</button>
+                    <button id="btn-si" style="flex:1; padding:10px; border:none; border-radius:8px; background:#ff4d4d; color:white; cursor:pointer;">Sí</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+    }
+
+    // Actualizamos el mensaje
+    document.getElementById('mensaje-confirm').innerText = mensaje;
+
+    // Mostramos el modal
+    overlay.style.opacity = '1';
+    overlay.style.pointerEvents = 'auto';
+
+    // Asignamos los eventos a los botones CADA VEZ que se abre
+    const btnSi = document.getElementById('btn-si');
+    const btnNo = document.getElementById('btn-no');
+
+    // Limpiamos eventos previos para evitar ejecuciones múltiples
+    btnSi.onclick = () => {
+        cerrarModal();
+        if (onConfirm) onConfirm();
+    };
+
+    btnNo.onclick = () => {
+        cerrarModal();
+    };
+
+    function cerrarModal() {
+        overlay.style.opacity = '0';
+        overlay.style.pointerEvents = 'none';
+    }
 };
