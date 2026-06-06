@@ -99,11 +99,18 @@ window.abrirListaSuper = function() {
     const recetas = API.obtener("recetas_dolce_vida") || [];
     const inventario = API.obtener("inventario_dolce_vida") || [];
     
-    // 1. Tomamos TODOS los pendientes
-    const pendientes = pedidos.filter(p => p.estado !== "Entregado");
+    // 1. Tomamos los pendientes próximos a 4 días
+    const hoy = new Date();
+    const limite = new Date();
+    limite.setDate(hoy.getDate() + 4);
+
+    const pendientes = pedidos.filter(p => {
+        const fechaPedido = new Date(p.fecha);
+        return p.estado !== "Entregado" && fechaPedido <= limite;
+    });
 
     if (pendientes.length === 0) {
-        mostrarGloboNotificacion("No hay pedidos pendientes.", "#f39c12");
+        mostrarGloboNotificacion("No hay pedidos pendientes para los próximos 4 días.", "#f39c12");
         return;
     }
 
@@ -136,7 +143,7 @@ window.abrirListaSuper = function() {
     });
 
     if (Object.keys(listaCompras).length === 0) {
-        mostrarGloboNotificacion("¡Stock suficiente para todos los pedidos!", "#00a86b");
+        mostrarGloboNotificacion("¡Stock suficiente para los próximos 4 días!", "#00a86b");
         return;
     }
 
