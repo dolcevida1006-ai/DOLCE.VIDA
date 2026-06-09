@@ -163,18 +163,28 @@ function verificarModoEdicion() {
 
 function construirObjetoPedido() {
     const productosList = [];
-    // 1. Obtenemos las recetas para poder calcular el costo
     const recetas = API.obtener("recetas_dolce_vida") || []; 
+    
+    // Obtenemos el formulario y el ID de edición
+    const formulario = document.getElementById("form-nuevo-pedido");
+    const editId = formulario ? formulario.getAttribute("data-edit-id") : null;
+    
+    // Buscamos el estado actual si estamos editando
+    let estadoOriginal = "Cotización"; // Valor por defecto
+    if (editId) {
+        const pedidos = API.obtener("pedidos_dolce_vida") || [];
+        const pedidoExistente = pedidos.find(p => p.id === parseInt(editId));
+        if (pedidoExistente) {
+            estadoOriginal = pedidoExistente.estado; // Mantenemos el estado que tenía
+        }
+    }
 
     document.querySelectorAll(".fila-producto-pedido").forEach(f => {
         const select = f.querySelector(".select-prod");
         if (select.value) {
-            // 2. Buscamos la receta seleccionada
             const receta = recetas.find(r => r.id == select.value);
-            
-            // 3. Calculamos el costo base de la receta (igual a como lo haces en recetas.js)
-            // Si tu receta no tiene el costo guardado, lo calculamos al vuelo:
             let costoPorPorcion = 0;
+            
             if (receta && receta.ingredientes) {
                 const inventario = API.obtener("inventario_dolce_vida") || [];
                 let costoTotalReceta = 0;
@@ -193,19 +203,20 @@ function construirObjetoPedido() {
                 nombre: select.options[select.selectedIndex].text.trim(),
                 cantidad: parseInt(f.querySelector(".input-cant").value) || 0,
                 precioFinal: parseFloat(f.querySelector(".input-precio").value) || 0,
-                costoProduccion: costoPorPorcion // <--- GUARDAMOS EL COSTO CALCULADO
+                costoProduccion: costoPorPorcion
             });
         }
     });
 
     return {
-        id: Date.now(),
+        id: editId ? parseInt(editId) : Date.now(),
         cliente: document.getElementById("cliente").value.trim(),
         productos: productosList,
         total: document.getElementById("total-pedido").innerText,
         fecha: document.getElementById("fecha-entrega").value,
         hora: document.getElementById("hora-entrega").value,
-        notas: document.getElementById("notas") ? document.getElementById("notas").value.trim() : ""
+        notas: document.getElementById("notas") ? document.getElementById("notas").value.trim() : "",
+        estado: estadoOriginal // Mantiene "Pendiente", "Confirmado" o "Cotización" según corresponda
     };
 }
 
@@ -293,17 +304,22 @@ window.generarCotizacion = () => {
     const cliente = document.getElementById("cliente").value.trim();
     if (!cliente) return alert("Ingresa el nombre del cliente.");
 
+    // 1. CONSTRUIR Y GUARDAR (Lo que te faltaba para que aparezca en el gestor)
     const nuevoPedido = construirObjetoPedido();
-    
+    nuevoPedido.estado = "Cotización"; // Forzamos el estado para el gestor
+
+    let pedidos = API.obtener("pedidos_dolce_vida") || [];
+    pedidos.push(nuevoPedido);
+    API.guardar("pedidos_dolce_vida", pedidos);
+
+    // 2. PREPARAR EL CONTENIDO PARA EL PDF (Lo que te funcionaba bien)
     const divTemporal = document.createElement('div');
     divTemporal.innerHTML = window.obtenerHTMLCotizacion(nuevoPedido);
     
-    // Posicionamiento absoluto
     divTemporal.style.position = "absolute";
     divTemporal.style.top = "0";
     divTemporal.style.left = "0";
     divTemporal.style.width = "210mm"; 
-    // FORZAMOS ALTURA MÁXIMA LIGERAMENTE MENOR A A4 PARA EVITAR SALTO DE PÁGINA
     divTemporal.style.maxHeight = "290mm"; 
     divTemporal.style.overflow = "hidden";
     
@@ -317,7 +333,6 @@ window.generarCotizacion = () => {
             scale: 2, 
             useCORS: false,
             backgroundColor: '#fff0f3',
-            // Usamos el scrollHeight pero con un tope para evitar la segunda hoja
             height: Math.min(divTemporal.scrollHeight, 1120) 
         },
         jsPDF: { 
@@ -327,8 +342,10 @@ window.generarCotizacion = () => {
         }
     };
 
+    // 3. GENERAR Y RECARGAR
     html2pdf().set(opciones).from(divTemporal).save().then(() => {
         document.body.removeChild(divTemporal);
+        // Ahora al recargar, como ya guardaste el dato antes, el gestor lo encontrará
         location.reload();
     }).catch(err => {
         console.error("Error:", err);
