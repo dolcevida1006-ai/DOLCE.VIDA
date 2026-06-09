@@ -7,6 +7,7 @@ document.addEventListener("DOMContentLoaded", () => {
     inicializarEventos();
     mostrarRecetas();
 });
+const MARGEN_UTILIDAD = 0.70;
 
 function inicializarModal() {
     const modal = document.getElementById("modal-receta");
@@ -47,12 +48,12 @@ function agregarFilaIngrediente(datos = null) {
     
     // Estructura corregida: inputs con tamaño flexible para que la X siempre sea visible
     fila.innerHTML = `
-        <select class="select-ingrediente" onchange="adaptarUnidadesReceta(this)" style="flex: 2;">
+        <select class="select-ingrediente" onchange="adaptarUnidadesReceta(this); calcularCostoReceta();" style="flex: 2;">
             ${inventario.map(ins => `<option value="${ins.nombre}" data-familia="${obtenerFamilia(ins.unidad)}">${ins.nombre}</option>`).join('')}
         </select>
-        <input type="number" class="input-cantidad-ing" placeholder="Cant." step="any" required style="flex: 1; width: 50px;">
-        <select class="select-unidad-receta" style="flex: 1;"></select>
-        <button type="button" class="btn-eliminar-ing" onclick="this.parentElement.remove()">✕</button>
+        <input type="number" class="input-cantidad-ing" placeholder="Cant." step="any" required oninput="calcularCostoReceta()" style="flex: 1; width: 50px;">
+        <select class="select-unidad-receta" onchange="calcularCostoReceta()" style="flex: 1;"></select>
+        <button type="button" class="btn-eliminar-ing" onclick="this.parentElement.remove(); calcularCostoReceta();">✕</button>
     `;
     contenedor.appendChild(fila);
 
@@ -79,10 +80,48 @@ function obtenerFamilia(u) {
     return (u === "kg" || u === "g") ? "peso" : (u === "l" || u === "ml") ? "volumen" : "unidades";
 }
 
+window.calcularCostoReceta = () => {
+    const inventario = API.obtener("inventario_dolce_vida") || [];
+    const filas = document.querySelectorAll(".fila-ingrediente");
+    let costoTotal = 0;
+
+    filas.forEach(f => {
+        const nombre = f.querySelector(".select-ingrediente").value;
+        const cantidad = parseFloat(f.querySelector(".input-cantidad-ing").value) || 0;
+        const unidadReceta = f.querySelector(".select-unidad-receta").value; // g, kg, ml, l, pzas
+        
+        const insumo = inventario.find(i => i.nombre === nombre);
+        
+        if (insumo && insumo.precioCompra > 0) {
+            // Precio por unidad base del inventario (ej: $20 por 1000g o 1kg)
+            const precioUnitarioBase = insumo.precioCompra / insumo.cantidadBase;
+            
+            // Convertimos lo que pide la receta a la unidad base del inventario
+            let cantidadEnBase = cantidad;
+            
+            // Si la receta pide g y el inventario usa kg, o receta ml y el inventario usa l
+            if ((unidadReceta === 'g' && insumo.unidad === 'kg') || (unidadReceta === 'ml' && insumo.unidad === 'l')) {
+                cantidadEnBase = cantidad / 1000;
+            } 
+            // Si la receta pide kg y el inventario usa g, o receta l y el inventario usa ml
+            else if ((unidadReceta === 'kg' && insumo.unidad === 'g') || (unidadReceta === 'l' && insumo.unidad === 'ml')) {
+                cantidadEnBase = cantidad * 1000;
+            }
+            
+            costoTotal += (cantidadEnBase * precioUnitarioBase);
+        }
+    });
+
+    const sugerido = costoTotal * 1.70;
+    document.getElementById("display-costo-receta").innerText = `Costo producción: $${costoTotal.toFixed(2)}`;
+    document.getElementById("display-sugerido").innerText = `Precio sugerido (+70%): $${sugerido.toFixed(2)}`;
+};
+
 window.guardarReceta = () => {
     const form = document.getElementById("form-nueva-receta");
     const nombre = document.getElementById("receta-nombre").value;
     const porciones = parseInt(document.getElementById("receta-porciones").value) || 1;
+    const precioVenta = parseFloat(document.getElementById("receta-precio-venta").value) || 0;
     const filas = document.querySelectorAll(".fila-ingrediente");
     let ingredientes = [];
     
@@ -98,9 +137,9 @@ window.guardarReceta = () => {
     const editId = form.getAttribute("data-edit-id");
 
     if (editId) {
-        recetas = recetas.map(r => r.id == editId ? { id: parseInt(editId), nombre, porciones, ingredientes } : r);
+        recetas = recetas.map(r => r.id == editId ? { id: parseInt(editId), nombre, porciones, ingredientes, precioVenta } : r);
     } else {
-        recetas.push({ id: Date.now(), nombre, porciones, ingredientes });
+        recetas.push({ id: Date.now(), nombre, porciones, ingredientes, precioVenta });
     }
 
     API.guardar("recetas_dolce_vida", recetas);
@@ -156,10 +195,20 @@ window.toggleIngredientes = (id) => {
 window.abrirEditarReceta = (id) => {
     const r = API.obtener("recetas_dolce_vida").find(x => x.id === id);
     if(!r) return;
+    
     document.getElementById("receta-nombre").value = r.nombre;
     document.getElementById("receta-porciones").value = r.porciones || 1;
+    document.getElementById("receta-precio-venta").value = r.precioVenta || 0;
+    
     document.getElementById("contenedor-insumos-dinamicos").innerHTML = "";
+    
+    // Cargar ingredientes
     r.ingredientes.forEach(i => agregarFilaIngrediente(i));
+    
+    // AQUÍ ESTÁ LA CORRECCIÓN: 
+    // Forzamos el cálculo inmediatamente después de cargar los ingredientes
+    calcularCostoReceta();
+    
     document.getElementById("form-nueva-receta").setAttribute("data-edit-id", id);
     document.getElementById("modal-receta").classList.add("open");
 };
