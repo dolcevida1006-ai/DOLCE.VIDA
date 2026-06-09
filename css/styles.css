@@ -4,7 +4,7 @@
 :root {
     --bg-color: #fcf8f2;
     --primary-color: #ff8da1;
-    --secondary-color: #6c5ce7;
+    --secondary-color: #FF9EBB;
     --text-color: #2d3436;
     --card-bg: #ffffff;
     --danger-color: #ff7675;
@@ -335,16 +335,26 @@ body {
     transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1);
 }
 
-.bottom-modal.open { bottom: 0; }
+.bottom-modal.open { 
+    bottom: 0; 
+}
 
 .modal-content {
     background: white;
     width: 100%;
-    max-height: 85vh;
+    max-height: 90vh;
     border-radius: 24px 24px 0 0;
     padding: 24px;
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     box-shadow: 0 -5px 20px rgba(0,0,0,0.15);
+}
+
+#form-nueva-receta {
+    overflow-y: auto;
+    padding-bottom: 20px;
+    flex-grow: 1;
 }
 
 .modal-header {
@@ -627,11 +637,6 @@ body {
     max-height: 90vh; /* Ajuste para mayor espacio */
 }
 
-#form-nueva-receta {
-    flex-grow: 1;
-    overflow-y: auto; /* Esto permite scroll dentro del formulario */
-    padding-right: 5px;
-}
 
 /* 2. Estilo de globos para ingredientes */
 .fila-ingrediente {
@@ -707,3 +712,130 @@ body {
 #contenedor-insumos-dinamicos {
     padding: 10px 0;
 }
+
+/* Estilo para las filas de productos dinámicos */
+.fila-producto-pedido {
+    background: #fff5f8; /* Un fondo rosita muy suave */
+    border: 2px solid #ffccd5 !important; /* Borde fiusha claro */
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.fila-producto-pedido select, .fila-producto-pedido input {
+    border: 1px solid #ffccd5;
+    border-radius: 8px;
+    padding: 8px;
+}
+
+.btn-eliminar-prod {
+    background: #ff758f;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+}
+
+/* El botón de agregar producto */
+#btn-agregar-producto {
+    border: 2px dashed #ff758f;
+    color: #ff758f;
+    padding: 10px;
+    width: 100%;
+    border-radius: 12px;
+    background: transparent;
+    font-weight: bold;
+}
+
+.swipe-container {
+    position: relative;
+    overflow: hidden;
+    border-radius: 12px;
+}
+.swipe-actions {
+    position: absolute;
+    right: 0; top: 0; bottom: 0;
+    display: flex;
+}
+.swipe-actions button {
+    width: 60px; border: none; color: white; cursor: pointer;
+}
+/* La tarjeta se desliza sobre las acciones */
+.card {
+    background: white;
+    padding: 15px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    transition: transform 0.3s;
+}
+
+/* Botones de acción mejorados */
+.btn-accion-dual {
+    display: flex;
+    gap: 10px;
+    margin: 15px 0;
+}
+
+.btn-accion-dual button {
+    flex: 1;
+    padding: 12px;
+    border-radius: 12px;
+    border: none;
+    background: #fff5f8;
+    color: #ff758f;
+    font-weight: bold;
+    border: 1px solid #ffccd5;
+    cursor: pointer;
+}
+
+/* Modal estético y sobre la barra */
+.bottom-modal {
+    position: fixed;
+    top: 10%; /* Lo bajamos un poco del tope */
+    left: 5%;
+    width: 90%;
+    height: 80%;
+    background: white;
+    border-radius: 20px;
+    z-index: 9999; /* Asegura que tape todo */
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    display: none;
+    flex-direction: column;
+}
+
+.bottom-modal.open { display: flex; }
+
+.card-presupuesto {
+    background: white;
+    padding: 15px;
+    border-radius: 16px;
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid #ffe4e6;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+}
+
+.acciones {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-check, .btn-cross {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.btn-check { background: #d4edda; } /* Verde bajito */
+.btn-cross { background: #f8d7da; } /* Rojo bajito */
+
+.btn-check:active, .btn-cross:active { transform: scale(0.9); }
