@@ -23,10 +23,11 @@ function inicializarPantallaInicio() {
     const inventario = API.obtener("inventario_dolce_vida") || [];
     const recetas = API.obtener("recetas_dolce_vida") || [];
 
-    const pendientes = pedidos.filter(p => p.estado !== "Entregado");
+    // Busca esta línea en tu js/main.js (dentro de inicializarPantallaInicio)
+    const pendientes = pedidos.filter(p => p.estado !== "Entregado" && p.estado !== "Cotización");
+    
     pendientes.sort((a, b) => new Date(`${a.fecha}T${a.hora}`) - new Date(`${b.fecha}T${b.hora}`));
 
-    // Preparamos fechas para la ventana de 4 días
     const hoy = new Date();
     const limiteVentana = new Date();
     limiteVentana.setDate(hoy.getDate() + 4);
@@ -46,69 +47,57 @@ function inicializarPantallaInicio() {
     let analisisPedidos = [];
     
     pendientes.forEach(pedido => {
-        const receta = recetas.find(r => r.id === pedido.recetaId || r.nombre.toLowerCase() === pedido.producto.toLowerCase());
-        const fechaPedido = new Date(`${pedido.fecha}T${pedido.hora}`);
-        const estaEnVentana = fechaPedido <= limiteVentana; 
+        // Aseguramos compatibilidad: si no hay array 'productos', usamos el objeto único
+        const listaProductos = pedido.productos || [{ recetaId: pedido.recetaId, nombre: pedido.producto, cantidad: pedido.cantidad, precioFinal: 0 }];
         
-        if (!receta) {
-            analisisPedidos.push({ pedido: pedido, porcentaje: 0, faltantes: ["Sin receta"] });
-            return;
-        }
+        let costoProduccionTotal = 0;
+        let totalIngredientesGlobal = 0;
+        let porcentajeAcumuladoGlobal = 0;
+        let listaFaltantesGlobal = [];
 
-        const porcionesReceta = receta.porciones || 1;
-        const factorEscala = pedido.cantidad / porcionesReceta;
+        listaProductos.forEach(item => {
+            const receta = recetas.find(r => r.id === item.recetaId || r.nombre.toLowerCase() === (item.nombre || "").toLowerCase());
+            if (!receta) return;
 
-        let totalIngredientes = receta.ingredientes.length;
-        let porcentajeAcumulado = 0;
-        let listaFaltantesPedido = [];
+            const factorEscala = item.cantidad / (receta.porciones || 1);
+            totalIngredientesGlobal += receta.ingredientes.length;
 
-        receta.ingredientes.forEach(ing => {
-            const nombreClave = ing.nombre.toLowerCase();
-            const unidadIng = ing.unidad.toLowerCase();
-            const necesidadReal = (ing.cantidad * factorEscala) * (EQUIVALENCIAS_MOTOR[unidadIng] || 1);
-            const insumoEnAlmacen = stockSimulado[nombreClave];
+            // --- CÁLCULO DE COSTO ---
+            // Usamos el costo guardado en el objeto producto si existe, si no, calculamos al vuelo para compatibilidad
+            costoProduccionTotal += (item.costoProduccion || 0) * item.cantidad;
 
-            if (insumoEnAlmacen) {
-                // LÓGICA DE SIMULACIÓN ACUMULATIVA:
-                // Calculamos cuánto podemos asignar de lo que queda disponible actualmente
-                const cantidadAsignada = Math.min(insumoEnAlmacen.disponibleMinimo, necesidadReal);
+            receta.ingredientes.forEach(ing => {
+                const nombreClave = ing.nombre.toLowerCase();
+                const insumo = inventario.find(i => i.nombre.toLowerCase() === nombreClave);
                 
-                // Registramos este segmento para la gráfica global
-                if (cantidadAsignada > 0) {
-                    insumoEnAlmacen.desglosePedidos.push({
-                        idPedido: pedido.id,
-                        cantidad: cantidadAsignada,
-                        color: obtenerColorPedido(pedido.id)
-                    });
-                }
+                // --- LÓGICA DE STOCK (Mantenemos tu motor intacta) ---
+                const necesidadReal = (ing.cantidad * factorEscala) * (EQUIVALENCIAS_MOTOR[ing.unidad.toLowerCase()] || 1);
+                const insumoEnAlmacen = stockSimulado[nombreClave];
 
-                if (insumoEnAlmacen.disponibleMinimo >= necesidadReal) {
-                    // Si alcanza, restamos del disponible y acumulamos éxito
-                    insumoEnAlmacen.disponibleMinimo -= necesidadReal;
-                    porcentajeAcumulado += 100;
-                } else {
-                    // Si no alcanza, el porcentaje es lo que logramos cubrir
-                    const proporcionAsignada = (insumoEnAlmacen.disponibleMinimo / necesidadReal) * 100;
-                    porcentajeAcumulado += proporcionAsignada;
-                    
-                    if (estaEnVentana) {
-                        listaFaltantesPedido.push(ing.nombre);
+                if (insumoEnAlmacen) {
+                    const cantidadAsignada = Math.min(insumoEnAlmacen.disponibleMinimo, necesidadReal);
+                    if (cantidadAsignada > 0) {
+                        insumoEnAlmacen.desglosePedidos.push({ idPedido: pedido.id, cantidad: cantidadAsignada, color: obtenerColorPedido(pedido.id) });
                     }
-                    // Una vez agotado, el disponible se queda en 0 para todos los siguientes pedidos
-                    insumoEnAlmacen.disponibleMinimo = 0;
+                    if (insumoEnAlmacen.disponibleMinimo >= necesidadReal) {
+                        insumoEnAlmacen.disponibleMinimo -= necesidadReal;
+                        porcentajeAcumuladoGlobal += 100;
+                    } else {
+                        porcentajeAcumuladoGlobal += (insumoEnAlmacen.disponibleMinimo / necesidadReal) * 100;
+                        if (new Date(`${pedido.fecha}T${pedido.hora}`) <= limiteVentana) listaFaltantesGlobal.push(ing.nombre);
+                        insumoEnAlmacen.disponibleMinimo = 0;
+                    }
                 }
-            } else {
-                porcentajeAcumulado += 0;
-                if (estaEnVentana) listaFaltantesPedido.push(ing.nombre);
-            }
+            });
         });
 
-        const porcentajeFinal = totalIngredientes > 0 ? (porcentajeAcumulado / totalIngredientes) : 0;
+        const porcentajeFinal = totalIngredientesGlobal > 0 ? (porcentajeAcumuladoGlobal / totalIngredientesGlobal) : 0;
         
         analisisPedidos.push({
             pedido: pedido,
+            costoProduccion: costoProduccionTotal,
             porcentaje: Math.min(100, Math.max(0, porcentajeFinal)),
-            faltantes: listaFaltantesPedido
+            faltantes: [...new Set(listaFaltantesGlobal)] // Quitamos duplicados
         });
     });
 
@@ -136,6 +125,11 @@ function renderizarPedidos(analisisPedidos) {
         const pedido = item.pedido;
         const porcentaje = Math.round(item.porcentaje);
         const faltantes = item.faltantes;
+        
+        // Sumamos el costo guardado en cada producto del pedido
+        const costoProduccion = item.costoProduccion || 0;
+        const precioVenta = parseFloat(pedido.total || 0);
+        const utilidad = precioVenta - costoProduccion;
 
         const swipeContainer = document.createElement("div");
         swipeContainer.className = "swipe-container";
@@ -188,10 +182,18 @@ function renderizarPedidos(analisisPedidos) {
             textoAlertaFaltantes = `<span style="color: #00b894; font-weight: bold; font-size: 0.78rem; float: right;">✅ Insumos Listos</span>`;
         }
 
+        // Definimos el nombre del producto (soporta estructura simple o múltiple)
+        const nombreDisplay = pedido.productos ? pedido.productos.map(p => p.nombre).join(', ') : pedido.producto;
+
         card.innerHTML = `
-            <h3>${pedido.producto} (x${pedido.cantidad})</h3>
+            <h3>${nombreDisplay}</h3>
             <p><strong>Fecha:</strong> ${invertirFecha(pedido.fecha)} - ${pedido.hora}</p>
             <p><strong>Cliente:</strong> ${pedido.cliente}</p>
+            <p style="font-size: 0.85rem; background: #f8f9fa; padding: 5px; border-radius: 4px;">
+                <strong>Prod:</strong> $${costoProduccion.toFixed(2)} | 
+                <strong>Venta:</strong> $${precioVenta.toFixed(2)} | 
+                <strong>Utilidad:</strong> $${utilidad.toFixed(2)}
+            </p>
             ${pedido.notas ? `<p><strong>Notas:</strong> <i>"${pedido.notas}"</i></p>` : ''}
             
             <div class="pedido-insumos-bar" style="margin: 12px 0 6px 0; overflow: hidden;">
@@ -295,46 +297,66 @@ window.cambiarEstadoPedido = function(id, nuevoEstado) {
     if (!pedidoEncontrado) return;
 
     if (nuevoEstado === "Entregado") {
-        const receta = recetas.find(r => r.id === pedidoEncontrado.recetaId || r.nombre.toLowerCase() === pedidoEncontrado.producto.toLowerCase());
-        
-        if (receta) {
-            const porcionesReceta = receta.porciones || 1;
-            const factorEscala = pedidoEncontrado.cantidad / porcionesReceta;
+        let costoTotalCalculado = 0; // <--- NUEVO
+        const listaProductos = pedidoEncontrado.productos || [{
+            recetaId: pedidoEncontrado.recetaId,
+            nombre: pedidoEncontrado.producto,
+            cantidad: pedidoEncontrado.cantidad
+        }];
 
-            receta.ingredientes.forEach(ing => {
-                const nombreIng = ing.nombre.toLowerCase();
-                let cantidadNecesaria = ing.cantidad * factorEscala;
-                let insumoStock = inventario.find(i => i.nombre.toLowerCase() === nombreIng);
-                
-                if (insumoStock) {
-                    const esPieza = insumoStock.unidad.toLowerCase() === 'unidades' || insumoStock.unidad.toLowerCase() === 'pzas';
-                    if (esPieza) {
-                        cantidadNecesaria = Math.round(cantidadNecesaria);
-                        insumoStock.cantidad = Math.max(0, Math.round(insumoStock.cantidad) - cantidadNecesaria);
-                    } else {
-                        insumoStock.cantidad = Math.max(0, insumoStock.cantidad - cantidadNecesaria);
-                        insumoStock.cantidad = parseFloat(insumoStock.cantidad.toFixed(2));
+        listaProductos.forEach(item => {
+            const receta = recetas.find(r => r.id === item.recetaId || r.nombre.toLowerCase() === (item.nombre || "").toLowerCase());
+
+            if (receta) {
+                const porcionesReceta = receta.porciones || 1;
+                const factorEscala = item.cantidad / porcionesReceta;
+
+                receta.ingredientes.forEach(ing => {
+                    const nombreIng = ing.nombre.toLowerCase();
+                    let cantidadNecesaria = ing.cantidad * factorEscala;
+                    let insumoStock = inventario.find(i => i.nombre.toLowerCase() === nombreIng);
+
+                    // --- CÁLCULO DE COSTO ---
+                    if (insumoStock && insumoStock.precioUnitario) {
+                        costoTotalCalculado += (ing.cantidad * factorEscala) * insumoStock.precioUnitario;
                     }
-                }
-            });
-            API.guardar("inventario_dolce_vida", inventario);
-        }
+
+                    // --- LÓGICA DE STOCK ---
+                    if (insumoStock) {
+                        const esPieza = insumoStock.unidad.toLowerCase() === 'unidades' || insumoStock.unidad.toLowerCase() === 'pzas';
+                        if (esPieza) {
+                            cantidadNecesaria = Math.round(cantidadNecesaria);
+                            insumoStock.cantidad = Math.max(0, Math.round(insumoStock.cantidad) - cantidadNecesaria);
+                        } else {
+                            insumoStock.cantidad = Math.max(0, insumoStock.cantidad - cantidadNecesaria);
+                            insumoStock.cantidad = parseFloat(insumoStock.cantidad.toFixed(2));
+                        }
+                    }
+                });
+            }
+        });
+        
+        // GUARDAMOS EL COSTO CONGELADO EN EL PEDIDO
+        pedidoEncontrado.costoProduccion = costoTotalCalculado; // <--- GUARDADO
+        API.guardar("inventario_dolce_vida", inventario);
     }
 
     pedidos = pedidos.map(pedido => {
         if (pedido.id === id) pedido.estado = nuevoEstado;
         return pedido;
     });
-    
+
     API.guardar("pedidos_dolce_vida", pedidos);
     inicializarPantallaInicio();
 };
 
 function invertirFecha(fecha) {
+    if (!fecha || typeof fecha !== 'string' || !fecha.includes("-")) {
+        return "Fecha no válida";
+    }
     const partes = fecha.split("-");
     return `${partes[2]}/${partes[1]}/${partes[0]}`;
 }
-
 window.descargarDatos = function() {
     const llaves = ["pedidos_dolce_vida", "inventario_dolce_vida", "recetas_dolce_vida"];
     let backup = {};
@@ -371,17 +393,14 @@ window.subirDatos = function(event) {
 };
 
 window.eliminarPedido = function(id) {
-    // Usamos la misma lógica de confirmación que en recetas
     confirmarAccion("¿Estás seguro de que quieres eliminar este pedido? Esta acción no se puede deshacer.", () => {
         let pedidos = API.obtener("pedidos_dolce_vida") || [];
         pedidos = pedidos.filter(p => p.id !== id);
         
         API.guardar("pedidos_dolce_vida", pedidos);
         
-        // Refrescamos la pantalla
         inicializarPantallaInicio();
         
-        // Notificación opcional (si tu sistema la tiene)
         if (typeof mostrarGloboNotificacion === 'function') {
             mostrarGloboNotificacion("Pedido eliminado correctamente.", "#ff7675");
         }
@@ -391,7 +410,6 @@ window.eliminarPedido = function(id) {
 window.confirmarAccion = function(mensaje, onConfirm) {
     let overlay = document.getElementById('modal-confirmacion-overlay');
     
-    // Si no existe, lo creamos por primera vez
     if (!overlay) {
         overlay = document.createElement('div');
         overlay.id = 'modal-confirmacion-overlay';
@@ -409,18 +427,14 @@ window.confirmarAccion = function(mensaje, onConfirm) {
         document.body.appendChild(overlay);
     }
 
-    // Actualizamos el mensaje
     document.getElementById('mensaje-confirm').innerText = mensaje;
 
-    // Mostramos el modal
     overlay.style.opacity = '1';
     overlay.style.pointerEvents = 'auto';
 
-    // Asignamos los eventos a los botones CADA VEZ que se abre
     const btnSi = document.getElementById('btn-si');
     const btnNo = document.getElementById('btn-no');
 
-    // Limpiamos eventos previos para evitar ejecuciones múltiples
     btnSi.onclick = () => {
         cerrarModal();
         if (onConfirm) onConfirm();
