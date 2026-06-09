@@ -9,6 +9,8 @@ document.addEventListener("DOMContentLoaded", () => {
             const nombre = document.getElementById("insumo-nombre").value.trim();
             const cantidadIngresada = parseFloat(document.getElementById("insumo-cantidad").value);
             const unidadIngresada = document.getElementById("insumo-unidad").value.toLowerCase();
+            const precioCompra = parseFloat(document.getElementById("insumo-precio").value) || 0;
+            const cantidadBase = parseFloat(document.getElementById("insumo-cantidad-base").value) || 0;
             
             // Validación estricta para piezas
             if ((unidadIngresada === 'unidades' || unidadIngresada === 'pzas') && !Number.isInteger(cantidadIngresada)) {
@@ -24,7 +26,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (editId) {
                 // Modo Edición
                 const index = parseInt(editId);
-                inventario[index] = { nombre, cantidad: cantidadIngresada, unidad: unidadIngresada };
+                inventario[index] = { nombre, cantidad: cantidadIngresada, unidad: unidadIngresada, precioCompra, cantidadBase };
                 form.removeAttribute("data-edit-id");
             } else {
                 // Modo Registro
@@ -34,8 +36,13 @@ document.addEventListener("DOMContentLoaded", () => {
                     const multEx = EQUIVALENCIAS_SUPER[inventario[index].unidad.toLowerCase()] || 1;
                     inventario[index].cantidad += (cantidadIngresada * multIng) / multEx;
                     inventario[index].cantidad = parseFloat(inventario[index].cantidad.toFixed(2));
+                    // Solo actualizamos precio si el usuario lo ingresó al agregar más stock
+                    if (precioCompra > 0) {
+                        inventario[index].precioCompra = precioCompra;
+                        inventario[index].cantidadBase = cantidadBase;
+                    }
                 } else {
-                    inventario.push({ nombre, cantidad: cantidadIngresada, unidad: unidadIngresada });
+                    inventario.push({ nombre, cantidad: cantidadIngresada, unidad: unidadIngresada, precioCompra, cantidadBase });
                 }
             }
             API.guardar("inventario_dolce_vida", inventario);
@@ -55,6 +62,10 @@ function cargarInventario() {
         const swipeContainer = document.createElement("div");
         swipeContainer.className = "swipe-container";
         
+        const mostrarCosto = (insumo.precioCompra > 0 && insumo.cantidadBase > 0) 
+            ? `<p style="font-size: 0.8rem; color: #888; margin-top: 5px;">Costo: $${(insumo.precioCompra / insumo.cantidadBase * (['kg','l'].includes(insumo.unidad) ? 1 : (['unidades', 'pzas', 'pz'].includes(insumo.unidad) ? 1 : 1000))).toFixed(2)} / ${insumo.unidad === 'g' ? 'kg' : insumo.unidad === 'ml' ? 'L' : (['unidades', 'pzas', 'pz'].includes(insumo.unidad) ? 'unidad' : insumo.unidad)}`
+            : "";
+        
         swipeContainer.innerHTML = `
             <div class="swipe-actions">
                 <button class="btn-action btn-editar" onclick="editarInsumo(${index})">✏️</button>
@@ -63,6 +74,7 @@ function cargarInventario() {
             <div class="card" style="border-left: 5px solid #6c5ce7;">
                 <h3>${insumo.nombre}</h3>
                 <p style="font-size: 1.2rem; font-weight: bold; color: #6c5ce7;">${insumo.cantidad} <span style="font-size: 0.9rem; color: #666;">${insumo.unidad}</span></p>
+                ${mostrarCosto}
             </div>
         `;
         
@@ -83,6 +95,8 @@ window.editarInsumo = function(index) {
     document.getElementById("insumo-nombre").value = insumo.nombre;
     document.getElementById("insumo-cantidad").value = insumo.cantidad;
     document.getElementById("insumo-unidad").value = insumo.unidad;
+    document.getElementById("insumo-precio").value = insumo.precioCompra || "";
+    document.getElementById("insumo-cantidad-base").value = insumo.cantidadBase || "";
     document.getElementById("form-nuevo-insumo").setAttribute("data-edit-id", index);
     window.scrollTo(0,0);
 };
@@ -99,14 +113,15 @@ window.abrirListaSuper = function() {
     const recetas = API.obtener("recetas_dolce_vida") || [];
     const inventario = API.obtener("inventario_dolce_vida") || [];
     
-    // 1. Tomamos los pendientes próximos a 4 días
+    // 1. Tomamos los pendientes próximos a 4 días (Sin cambios en esta lógica)
     const hoy = new Date();
     const limite = new Date();
     limite.setDate(hoy.getDate() + 4);
 
     const pendientes = pedidos.filter(p => {
+        // Asegurar que la fecha sea válida
         const fechaPedido = new Date(p.fecha);
-        return p.estado !== "Entregado" && fechaPedido <= limite;
+        return p.estado !== "Entregado" && p.estado !== "Cotización" && fechaPedido <= limite;
     });
 
     if (pendientes.length === 0) {
@@ -114,30 +129,35 @@ window.abrirListaSuper = function() {
         return;
     }
 
-    // 2. Sumamos la DEMANDA BRUTA
+    // 2. Sumamos la DEMANDA BRUTA (Ajustado para manejar productos múltiples)
     let demandaBruta = {};
     pendientes.forEach(pedido => {
-        const receta = recetas.find(r => r.id === pedido.recetaId || r.nombre.toLowerCase() === pedido.producto.toLowerCase());
-        if (!receta) return;
+        // Soporte para estructura nueva (array productos) y antigua (objeto único)
+        const listaProductos = pedido.productos || [{ recetaId: pedido.recetaId, nombre: pedido.producto, cantidad: pedido.cantidad }];
+        
+        listaProductos.forEach(item => {
+            const receta = recetas.find(r => r.id === item.recetaId || r.nombre.toLowerCase() === (item.nombre || "").toLowerCase());
+            if (!receta) return;
 
-        const factor = pedido.cantidad / (receta.porciones || 1);
-        receta.ingredientes.forEach(ing => {
-            const nombre = ing.nombre.toLowerCase();
-            const multIng = EQUIVALENCIAS_SUPER[ing.unidad.toLowerCase()] || 1;
-            const consumo = ing.cantidad * factor * multIng;
-            demandaBruta[nombre] = (demandaBruta[nombre] || 0) + consumo;
+            const factor = item.cantidad / (receta.porciones || 1);
+            receta.ingredientes.forEach(ing => {
+                const nombre = ing.nombre.toLowerCase();
+                const multIng = EQUIVALENCIAS_SUPER[ing.unidad.toLowerCase()] || 1;
+                const consumo = ing.cantidad * factor * multIng;
+                demandaBruta[nombre] = (demandaBruta[nombre] || 0) + consumo;
+            });
         });
     });
 
-    // 3. Comparamos contra el stock (Solo lo que falta)
+    // 3. Comparamos contra el stock
     let listaCompras = {};
     Object.keys(demandaBruta).forEach(nombre => {
         const cantidadNecesaria = demandaBruta[nombre];
         const insumoStock = inventario.find(i => i.nombre.toLowerCase() === nombre);
-        const stockActual = insumoStock ? (insumoStock.cantidad * EQUIVALENCIAS_SUPER[insumoStock.unidad.toLowerCase()]) : 0;
+        const stockActual = insumoStock ? (insumoStock.cantidad * (EQUIVALENCIAS_SUPER[insumoStock.unidad.toLowerCase()] || 1)) : 0;
         
         const falta = cantidadNecesaria - stockActual;
-        if (falta > 0) {
+        if (falta > 0.1) { // Ajuste: solo si falta algo significativo
             listaCompras[nombre] = falta;
         }
     });
@@ -147,7 +167,7 @@ window.abrirListaSuper = function() {
         return;
     }
 
-    // 4. Formato de salida con tu estilo de redondeo
+    // 4. Formato de salida
     let textoLista = "📋 Lista de compras (Lo que te falta):\n\n";
     for (const [nombre, cantidadFaltante] of Object.entries(listaCompras)) {
         const insumoOriginal = inventario.find(i => i.nombre.toLowerCase() === nombre.toLowerCase()) || { unidad: 'g' };
@@ -155,28 +175,31 @@ window.abrirListaSuper = function() {
         
         let textoLinea = "";
         
-        // Si es peso o volumen, aplicamos redondeo a .5
         if (['g', 'kg', 'ml', 'l'].includes(unidadOriginal)) {
             const esPeso = (unidadOriginal === 'g' || unidadOriginal === 'kg');
             const valorEnUnidadMayor = cantidadFaltante / 1000;
             const redondeado = Math.ceil(valorEnUnidadMayor * 2) / 2;
             const unidadVisual = esPeso ? "kg" : "L";
-            
             textoLinea = `- ${nombre}: ${redondeado}${unidadVisual} (${cantidadFaltante.toFixed(0)}${esPeso ? 'g' : 'ml'})`;
-        
         } else if (['unidades', 'pzas', 'pz'].includes(unidadOriginal)) {
             textoLinea = `- ${nombre}: ${Math.ceil(cantidadFaltante)}pz`;
-        
         } else {
             textoLinea = `- ${nombre}: ${cantidadFaltante.toFixed(0)}${unidadOriginal}`;
         }
-        
         textoLista += textoLinea + "\n";
     }
     
-    navigator.clipboard.writeText(textoLista).then(() => {
-        mostrarGloboNotificacion("¡Lista de compras copiada!", "#00a86b");
-    });
+    // 5. Copiado seguro
+    try {
+        navigator.clipboard.writeText(textoLista).then(() => {
+            mostrarGloboNotificacion("¡Lista de compras copiada!", "#00a86b");
+        }).catch(err => {
+            console.error("Error al copiar: ", err);
+            alert("No se pudo copiar automáticamente. Aquí está tu lista:\n\n" + textoLista);
+        });
+    } catch (e) {
+        alert(textoLista);
+    }
 };
 
 function mostrarGloboNotificacion(mensaje, color) {
