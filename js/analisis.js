@@ -1,5 +1,6 @@
 // Variable global para controlar la instancia del gráfico y evitar duplicados
 let miGrafico = null;
+let graficoFinanzas = null;
 let vistaActual = 'semanal'; 
 
 const EQUIVALENCIAS_ANALISIS = {
@@ -43,15 +44,27 @@ function inicializarSelectorProductos() {
         select.appendChild(option);
     });
 }
+
+// --- FUNCIÓN UNIFICADA ---
 function procesarAnalisisYGraficos() {
+    actualizarHistogramaPedidos();
+    renderizarGraficoFinanciero();
+}
+
+function actualizarHistogramaPedidos() {
     const canvas = document.getElementById('graficoAnalisis');
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     
     let pedidos = API.obtener("pedidos_dolce_vida").filter(p => p.estado === 'Entregado');
     const filtroProducto = document.getElementById('filtro-producto')?.value;
+    
+    // Filtro por producto adaptado a la nueva estructura
     if (filtroProducto && filtroProducto !== 'todos') {
-        pedidos = pedidos.filter(p => p.producto === filtroProducto);
+        pedidos = pedidos.filter(p => {
+            const lista = p.productos || [{ nombre: p.producto }];
+            return lista.some(item => item.nombre === filtroProducto);
+        });
     }
 
     let etiquetas, datosAgrupados = {};
@@ -59,7 +72,6 @@ function procesarAnalisisYGraficos() {
     if (vistaActual === 'semanal') {
         etiquetas = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
         const hoy = new Date();
-        // Inicializamos la estructura para cada día y cada producto encontrado
         let datosPorDia = {}; 
 
         pedidos.forEach(p => {
@@ -70,39 +82,36 @@ function procesarAnalisisYGraficos() {
                 let day = fechaP.getDay();
                 const diaIndex = (day === 0) ? 6 : day - 1;
                 
-                if (!datosPorDia[diaIndex]) datosPorDia[diaIndex] = {};
-                if (!datosPorDia[diaIndex][p.producto]) datosPorDia[diaIndex][p.producto] = [0, 0, 0, 0, 0, 0];
-                
-                datosPorDia[diaIndex][p.producto][diffSemanas] += p.cantidad;
+                const lista = p.productos || [{ nombre: p.producto, cantidad: p.cantidad }];
+                lista.forEach(prodItem => {
+                    if (!prodItem.nombre) return;
+                    if (!datosPorDia[diaIndex]) datosPorDia[diaIndex] = {};
+                    if (!datosPorDia[diaIndex][prodItem.nombre]) datosPorDia[diaIndex][prodItem.nombre] = [0, 0, 0, 0, 0, 0];
+                    
+                    datosPorDia[diaIndex][prodItem.nombre][diffSemanas] += prodItem.cantidad;
+                });
             }
         });
 
-        // Calcular media recortada
         for (let d = 0; d < 7; d++) {
             if (!datosPorDia[d]) continue;
             Object.keys(datosPorDia[d]).forEach(prod => {
                 if (!datosAgrupados[prod]) datosAgrupados[prod] = new Array(7).fill(0);
-                
                 let vals = datosPorDia[d][prod];
-                // Filtrar solo los valores que tienen datos reales para evitar que los ceros del array de 6 posiciones distorsionen
                 let valoresReales = vals.filter(v => v > 0);
-                
                 if (valoresReales.length === 0) {
                     datosAgrupados[prod][d] = 0;
                 } else if (valoresReales.length <= 2) {
-                    // Si hay muy pocos datos, simplemente el promedio simple
                     datosAgrupados[prod][d] = valoresReales.reduce((a, b) => a + b, 0) / valoresReales.length;
                 } else {
-                    // Media recortada: ordenamos y quitamos extremos
                     valoresReales.sort((a, b) => a - b);
-                    valoresReales.shift(); // Quita el menor
-                    valoresReales.pop();   // Quita el mayor
+                    valoresReales.shift();
+                    valoresReales.pop();
                     datosAgrupados[prod][d] = valoresReales.reduce((a, b) => a + b, 0) / valoresReales.length;
                 }
             });
         }
     } else {
-        // VISTA MENSUAL
         etiquetas = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
         const fInicio = new Date(document.getElementById('filtro-fecha-inicio').value);
         const fFin = new Date(document.getElementById('filtro-fecha-fin').value);
@@ -113,8 +122,11 @@ function procesarAnalisisYGraficos() {
             return fechaP >= fInicio && fechaP <= fFin;
         }).forEach(p => {
             const m = new Date(p.fecha + 'T00:00:00').getMonth();
-            if (!datosAgrupados[p.producto]) datosAgrupados[p.producto] = new Array(12).fill(0);
-            datosAgrupados[p.producto][m] += p.cantidad;
+            const lista = p.productos || [{ nombre: p.producto, cantidad: p.cantidad }];
+            lista.forEach(prodItem => {
+                if (!datosAgrupados[prodItem.nombre]) datosAgrupados[prodItem.nombre] = new Array(12).fill(0);
+                datosAgrupados[prodItem.nombre][m] += prodItem.cantidad;
+            });
         });
     }
 
@@ -136,6 +148,69 @@ function procesarAnalisisYGraficos() {
         }
     });
 }
+
+function renderizarGraficoFinanciero() {
+    const canvas = document.getElementById('graficoFinanciero');
+    if (!canvas) return;
+    
+    const pedidos = API.obtener("pedidos_dolce_vida") || [];
+    const entregados = pedidos.filter(p => p.estado === 'Entregado' && p.costoProduccion !== undefined);
+
+    const balanceMensual = {};
+    entregados.forEach(p => {
+        const mes = p.fecha.substring(0, 7);
+        if (!balanceMensual[mes]) balanceMensual[mes] = { ingresos: 0, gastos: 0 };
+        balanceMensual[mes].ingresos += parseFloat(p.total || 0);
+        balanceMensual[mes].gastos += p.costoProduccion;
+    });
+
+    const labels = Object.keys(balanceMensual).sort();
+    const dataIngresos = labels.map(m => balanceMensual[m].ingresos);
+    const dataGastos = labels.map(m => balanceMensual[m].gastos);
+    const dataUtilidad = labels.map(m => balanceMensual[m].ingresos - balanceMensual[m].gastos);
+
+    if (window.graficoFinanzas) window.graficoFinanzas.destroy();
+
+    const ctx = canvas.getContext('2d');
+    window.graficoFinanzas = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                { 
+                    label: 'Ingresos ($)', 
+                    data: dataIngresos, 
+                    backgroundColor: '#00b894' 
+                },
+                { 
+                    label: 'Gastos ($)', 
+                    data: dataGastos, 
+                    backgroundColor: '#ff7675' 
+                },
+                { 
+                    label: 'Utilidad Neta ($)', 
+                    data: dataUtilidad, 
+                    backgroundColor: '#0984e3' 
+                }
+            ]
+        },
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false,
+            scales: {
+                y: { 
+                    beginAtZero: true 
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'top'
+                }
+            }
+        }
+    });
+}
+
 // 3. CONTROL DE VISTAS
 function cambiarFiltroGrafico(tipo) {
     vistaActual = tipo;
@@ -161,15 +236,31 @@ function abrirPopUp(tipo) {
     
     let htmlContent = '';
     
+    const sumarCantidades = (lista) => lista.reduce((sum, p) => {
+        const cant = (p.productos || []).reduce((s, item) => s + (item.cantidad || 0), p.cantidad || 0);
+        return sum + cant;
+    }, 0);
+
     if (tipo === 'pedidos') {
-        const totalHistorico = todosLosPedidos.reduce((sum, p) => sum + p.cantidad, 0);
+        const totalHistorico = sumarCantidades(todosLosPedidos);
         htmlContent = `<h3>📊 Resumen Histórico</h3>
         <p><strong>Total unidades vendidas (Histórico):</strong> ${totalHistorico}</p>`;
     } else if (tipo === 'producto') {
         const ventasHist = {};
         const ventasRango = {};
-        todosLosPedidos.forEach(p => ventasHist[p.producto] = (ventasHist[p.producto] || 0) + p.cantidad);
-        pedidosFiltrados.forEach(p => ventasRango[p.producto] = (ventasRango[p.producto] || 0) + p.cantidad);
+        
+        todosLosPedidos.forEach(p => {
+            const lista = p.productos || [{ nombre: p.producto, cantidad: p.cantidad }];
+            lista.forEach(item => {
+                if (item.nombre) ventasHist[item.nombre] = (ventasHist[item.nombre] || 0) + item.cantidad;
+            });
+        });
+        pedidosFiltrados.forEach(p => {
+            const lista = p.productos || [{ nombre: p.producto, cantidad: p.cantidad }];
+            lista.forEach(item => {
+                if (item.nombre) ventasRango[item.nombre] = (ventasRango[item.nombre] || 0) + item.cantidad;
+            });
+        });
         
         const topH = Object.keys(ventasHist).length > 0 ? Object.keys(ventasHist).reduce((a, b) => ventasHist[a] > ventasHist[b] ? a : b) : "N/A";
         const topR = Object.keys(ventasRango).length > 0 ? Object.keys(ventasRango).reduce((a, b) => ventasRango[a] > ventasRango[b] ? a : b) : "N/A";
@@ -179,7 +270,7 @@ function abrirPopUp(tipo) {
                        <p><strong>En el periodo:</strong> ${topR} (${ventasRango[topR] || 0} un.)</p>`;
     } else if (tipo === 'mes') {
         const mesActualStr = new Date().toISOString().slice(0, 7);
-        const totalMes = todosLosPedidos.filter(p => p.fecha.startsWith(mesActualStr)).reduce((sum, p) => sum + p.cantidad, 0);
+        const totalMes = sumarCantidades(todosLosPedidos.filter(p => p.fecha.startsWith(mesActualStr)));
         htmlContent = `<h3>📅 Rendimiento</h3><p><strong>Total unidades mes actual:</strong> ${totalMes}</p>`;
     }
     
@@ -191,7 +282,7 @@ function cerrarPopUp() {
     document.getElementById('kpi-popup-overlay').classList.remove('active');
 }
 
-// 5. PROYECCIÓN DE COMPRA (MEDIA RECORTADA: 4 SEMANAS, ELIMINANDO PICO ALTO Y BAJO)
+// 5. PROYECCIÓN DE COMPRA
 function cargarAlertasPreventivas() {
     const contenedor = document.getElementById('contenedor-alertas-predictivas');
     if (!contenedor) return;
@@ -205,14 +296,19 @@ function cargarAlertasPreventivas() {
     pedidos.forEach(p => {
         const fechaP = new Date(p.fecha);
         const diffSemanas = Math.floor((hoy - fechaP) / (7 * 24 * 60 * 60 * 1000));
+        
         if (diffSemanas >= 0 && diffSemanas < 6) {
-            const receta = recetas.find(r => r.nombre.toLowerCase() === p.producto.toLowerCase());
-            if (!receta) return;
-            const factor = p.cantidad / (receta.porciones || 1);
-            receta.ingredientes.forEach(ing => {
-                const nom = ing.nombre.toLowerCase();
-                const cant = ing.cantidad * factor * (EQUIVALENCIAS_ANALISIS[ing.unidad.toLowerCase()] || 1);
-                consumoSemanas[5 - diffSemanas].push({ nombre: nom, cantidad: cant });
+            const productosAProcesar = p.productos ? p.productos : [{ nombre: p.producto, cantidad: p.cantidad }];
+            productosAProcesar.forEach(item => {
+                if (!item.nombre) return;
+                const receta = recetas.find(r => r.nombre.toLowerCase() === item.nombre.toLowerCase());
+                if (!receta) return;
+                const factor = item.cantidad / (receta.porciones || 1);
+                receta.ingredientes.forEach(ing => {
+                    const nom = ing.nombre.toLowerCase();
+                    const cant = ing.cantidad * factor * (EQUIVALENCIAS_ANALISIS[ing.unidad.toLowerCase()] || 1);
+                    consumoSemanas[5 - diffSemanas].push({ nombre: nom, cantidad: cant });
+                });
             });
         }
     });
@@ -229,10 +325,8 @@ function cargarAlertasPreventivas() {
     todosLosInsumos.forEach(nombre => {
         let valores = semanasData.map(sem => sem[nombre] || 0);
         valores.sort((a, b) => a - b);
-        // Promedio de las 2 centrales (eliminando 2 más bajas y 2 más altas de 6)
         const promedioRealista = (valores[2] + valores[3]) / 2;
         const meta = promedioRealista * 0.70;
-        
         const insumoStock = inventario.find(i => i.nombre.toLowerCase() === nombre);
         const actual = insumoStock ? (insumoStock.cantidad * (EQUIVALENCIAS_ANALISIS[insumoStock.unidad.toLowerCase()] || 1)) : 0;
 
@@ -240,8 +334,6 @@ function cargarAlertasPreventivas() {
             const falta = meta - actual;
             const unidad = insumoStock ? insumoStock.unidad : 'g';
             const factorUnidad = EQUIVALENCIAS_ANALISIS[unidad.toLowerCase()] || 1;
-            
-            // Redondeo a medios o enteros
             const faltaEnUnidad = falta / factorUnidad;
             const redondeado = Math.ceil(faltaEnUnidad * 2) / 2;
             
@@ -252,7 +344,6 @@ function cargarAlertasPreventivas() {
                 </div>`;
         }
     });
-
     contenedor.innerHTML = alertasHTML || `<div style="color:#00a86b; background:#e8f8f2; padding:12px; border-radius:8px; font-weight:bold;">✅ Stock ajustado correctamente.</div>`;
 }
 
@@ -277,8 +368,11 @@ window.exportarVentasExcel = function() {
     csvContent += "Fecha,Producto,Cantidad,Cliente,Estado,Hora\n";
 
     pedidos.forEach(p => {
-        const row = [p.fecha, p.producto, p.cantidad, p.cliente, p.estado, p.hora].join(",");
-        csvContent += row + "\n";
+        const lista = p.productos || [{ nombre: p.producto, cantidad: p.cantidad }];
+        lista.forEach(item => {
+            const row = [p.fecha, item.nombre, item.cantidad, p.cliente, p.estado, p.hora].join(",");
+            csvContent += row + "\n";
+        });
     });
 
     const encodedUri = encodeURI(csvContent);
@@ -299,19 +393,15 @@ function mostrarGloboNotificacion(mensaje, color) {
         overlay = document.createElement('div');
         overlay.id = 'kpi-popup-overlay';
         overlay.style.cssText = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:1000; opacity:0; transition: opacity 0.3s ease; pointer-events: none;";
-        
         contenido = document.createElement('div');
         contenido.id = 'popup-contenido';
         contenido.style.cssText = "background:white; padding:20px; border-radius:12px; max-width:80%; text-align:center; box-shadow: 0 4px 15px rgba(0,0,0,0.2);";
-        
         overlay.appendChild(contenido);
         document.body.appendChild(overlay);
     }
-
     contenido.innerHTML = `<h3 style="color:${color}; margin-top:0;">✅ Éxito</h3><p style="margin-bottom:0;">${mensaje}</p>`;
     overlay.style.opacity = "1";
     overlay.style.pointerEvents = "auto";
-    
     setTimeout(() => {
         overlay.style.opacity = "0";
         setTimeout(() => { overlay.style.pointerEvents = "none"; }, 300);
