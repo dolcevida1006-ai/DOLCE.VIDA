@@ -183,8 +183,8 @@ function renderizarPedidos(analisisPedidos) {
         }
 
         // Definimos el nombre del producto (soporta estructura simple o múltiple)
-        const nombreDisplay = pedido.productos ? pedido.productos.map(p => p.nombre).join(', ') : pedido.producto;
-
+        const nombreDisplay = pedido.productos ? pedido.productos.map(p => `${p.cantidad} ${p.nombre}`).join(', ') : pedido.producto;
+        
         card.innerHTML = `
             <h3>${nombreDisplay}</h3>
             <p><strong>Fecha:</strong> ${invertirFecha(pedido.fecha)} - ${pedido.hora}</p>
