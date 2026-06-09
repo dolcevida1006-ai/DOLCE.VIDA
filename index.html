@@ -13,7 +13,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dolce.vida - Gestión de Pastelería</title>
     <link rel="stylesheet" href="css/styles.css">
-    </head>
+</head>
 <body>
 
     <header class="app-header">
@@ -24,21 +24,12 @@
     <main class="app-container">
         
         <section class="dashboard-section">
-            <h2>🚨 Pedidos Pendientes</h2>
-            <div id="lista-pedidos-pendientes" class="cards-grid">
-                <div class="card card-urgente">
-                    <h3>Pastel de Tres Leches</h3>
-                    <p><strong>Fecha:</strong> Hoy - 4:00 PM</p>
-                    <p><strong>Cliente:</strong> María G.</p>
-                    <span class="badge">Pendiente</span>
-                </div>
-                <div class="card">
-                    <h3>12 Cupcakes de Vainilla</h3>
-                    <p><strong>Fecha:</strong> Mañana - 12:00 PM</p>
-                    <p><strong>Cliente:</strong> Juan P.</p>
-                    <span class="badge">En proceso</span>
-                </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h2>🚨 Pedidos Pendientes</h2>
+
             </div>
+            <div id="lista-pedidos-pendientes" class="cards-grid">
+                </div>
         </section>
 
         <section class="dashboard-section">
@@ -64,6 +55,7 @@
             <input type="file" id="input-subir-datos" style="display: none;" accept=".json" onchange="subirDatos(event)">
         </div>
     </section>
+
     <nav class="app-nav">
         <a href="index.html" class="nav-item active">🏠 Inicio</a>
         <a href="pedidos.html" class="nav-item">📋 Pedidos</a>
