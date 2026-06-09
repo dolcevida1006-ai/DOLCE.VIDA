@@ -49,12 +49,20 @@
 
                     <div class="insumos-receta-section">
                         <h4>Ingredientes Necesarios:</h4>
-                        <div id="contenedor-insumos-dinamicos">
-                        </div>
+                        <div id="contenedor-insumos-dinamicos"></div>
                         <button type="button" id="btn-agregar-ingrediente" class="btn-secundario-fancy">➕ Agregar Ingrediente</button>
                     </div>
 
-                    <button type="submit" class="btn-submit" style="margin-top: 20px;">📖 Guardar en Recetario</button>
+                    <!-- EL BLOQUE QUE AGREGAMOS PARA EL PRECIO -->
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0; border: 1px solid #ddd;">
+                        <p id="display-costo-receta" style="margin: 0; font-size: 0.9rem; color: #555;">Costo producción: $0.00</p>
+                        <p id="display-sugerido" style="margin: 5px 0; font-weight: bold; color: #2ecc71;">Precio sugerido (+70%): $0.00</p>
+                        <label for="receta-precio-venta" style="display: block; margin-top: 10px;">Precio de Venta Final ($):</label>
+                        <input type="number" id="receta-precio-venta" placeholder="Ej. 150.00" step="0.01" required>
+                    </div>
+
+                    <!-- BOTÓN DENTRO DEL FORMULARIO Y SIN POSICIÓN FIJA -->
+                    <button type="submit" class="btn-submit">📖 Guardar en Recetario</button>
                 </form>
             </div>
         </div>
