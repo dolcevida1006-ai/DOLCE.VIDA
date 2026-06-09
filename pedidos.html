@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+    
 <head>
     <link rel="manifest" href="manifest.json">
 
@@ -25,49 +26,42 @@
         <section class="form-section">
             
             <form id="form-nuevo-pedido" class="styled-form">
-                
                 <div class="form-group">
                     <label for="cliente">Nombre del Cliente:</label>
                     <input type="text" id="cliente" placeholder="Ej. María González" required>
                 </div>
 
-                <div class="form-group">
-                    <label for="producto">Producto:</label>
-                    <select id="producto" required>
-                        <option value="" disabled selected>Selecciona un producto...</option>
-                        <option value="pastel-tres-leches">Pastel de Tres Leches</option>
-                        <option value="cupcakes-vainilla">Cupcakes de Vainilla (x12)</option>
-                        <option value="cheesecake-fresa">Cheesecake de Fresa</option>
-                    </select>
+                <div id="contenedor-productos-pedido">
+                    <label>Productos solicitados:</label>
                 </div>
+                <button type="button" id="btn-agregar-producto" class="btn-secundario-fancy">➕ Agregar otro producto</button>
 
-                <div class="form-group">
-                    <label for="cantidad">Cantidad:</label>
-                    <input type="number" id="cantidad" min="1" value="1" required>
+                <div class="form-group" style="margin-top:20px; font-weight:bold; font-size: 1.2rem;">
+                    Total del Pedido: $<span id="total-pedido">0.00</span>
                 </div>
 
                 <div class="form-group">
                     <label for="fecha-entrega">Fecha de Entrega:</label>
                     <input type="date" id="fecha-entrega" required>
                 </div>
-
                 <div class="form-group">
                     <label for="hora-entrega">Hora de Entrega:</label>
                     <input type="time" id="hora-entrega" required>
                 </div>
 
-                <div class="form-group">
-                    <label for="notas">Notas Especiales / Detalles:</label>
-                    <textarea id="notas" rows="3" placeholder="Ej. Letrero que diga 'Feliz Cumple Pá', empaque para regalo..."></textarea>
+                <button type="submit" class="btn-submit">💾 Guardar Pedido</button>
+
+                <div class="btn-accion-dual">
+                    <button type="button" onclick="generarCotizacion()">📄 Descargar</button>
+                    <button type="button" onclick="abrirGestorPresupuestos()">✅ Confirmar</button>
                 </div>
 
-                <button type="submit" class="btn-submit">💾 Guardar Pedido</button>
             </form>
 
         </section>
     </main>
 
-<!-- Barra de Navegación Inferior Actualizada -->
+    <!-- Barra de Navegación Inferior Actualizada -->
     <nav class="app-nav">
         <a href="index.html" class="nav-item">🏠 Inicio</a>
         <a href="pedidos.html" class="nav-item active">📋 Pedidos</a>
@@ -75,7 +69,12 @@
         <a href="recetas.html" class="nav-item">📖 Recetas</a>
         <a href="analisis.html" class="nav-item">📊 Análisis</a>
     </nav>
+
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="js/api.js"></script>
-    <script src="js/pedidos.js"></script>
-</body>
+    <script src="js/logo.js"></script>         <script src="js/formatoCotizacion.js"></script>
+    <script src="js/pedidos.js">
+
+</script>
 </html>
