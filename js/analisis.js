@@ -154,14 +154,27 @@ function renderizarGraficoFinanciero() {
     if (!canvas) return;
     
     const pedidos = API.obtener("pedidos_dolce_vida") || [];
-    const entregados = pedidos.filter(p => p.estado === 'Entregado' && p.costoProduccion !== undefined);
+    
+    // Filtramos pedidos entregados
+    const entregados = pedidos.filter(p => p.estado === 'Entregado');
 
     const balanceMensual = {};
+    
     entregados.forEach(p => {
-        const mes = p.fecha.substring(0, 7);
+        const mes = p.fecha.substring(0, 7); // YYYY-MM
         if (!balanceMensual[mes]) balanceMensual[mes] = { ingresos: 0, gastos: 0 };
+        
+        // Sumar ingreso total del pedido
         balanceMensual[mes].ingresos += parseFloat(p.total || 0);
-        balanceMensual[mes].gastos += p.costoProduccion;
+        
+        // SUMAR GASTOS: Buscamos el costo en cada producto del pedido
+        const listaProductos = p.productos || [];
+        const costoTotalPedido = listaProductos.reduce((acc, prod) => {
+            // Si el costo no existe, intentamos usar 0, pero aseguramos que lea el dato
+            return acc + (parseFloat(prod.costoProduccion) || 0);
+        }, 0);
+        
+        balanceMensual[mes].gastos += costoTotalPedido;
     });
 
     const labels = Object.keys(balanceMensual).sort();
@@ -177,36 +190,14 @@ function renderizarGraficoFinanciero() {
         data: {
             labels: labels,
             datasets: [
-                { 
-                    label: 'Ingresos ($)', 
-                    data: dataIngresos, 
-                    backgroundColor: '#00b894' 
-                },
-                { 
-                    label: 'Gastos ($)', 
-                    data: dataGastos, 
-                    backgroundColor: '#ff7675' 
-                },
-                { 
-                    label: 'Utilidad Neta ($)', 
-                    data: dataUtilidad, 
-                    backgroundColor: '#0984e3' 
-                }
+                { label: 'Ingresos ($)', data: dataIngresos, backgroundColor: '#00b894' },
+                { label: 'Gastos ($)', data: dataGastos, backgroundColor: '#ff7675' },
+                { label: 'Utilidad Neta ($)', data: dataUtilidad, backgroundColor: '#0984e3' }
             ]
         },
         options: { 
-            responsive: true, 
-            maintainAspectRatio: false,
-            scales: {
-                y: { 
-                    beginAtZero: true 
-                }
-            },
-            plugins: {
-                legend: {
-                    position: 'top'
-                }
-            }
+            responsive: true, maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true } }
         }
     });
 }
