@@ -134,21 +134,42 @@ window.guardarReceta = () => {
     const filas = document.querySelectorAll(".fila-ingrediente");
     let ingredientes = [];
     
+    // --- CALCULAMOS EL COSTO TOTAL REAL ANTES DE GUARDAR ---
+    const inventario = API.obtener("inventario_dolce_vida") || [];
+    let costoTotalCalculado = 0;
+
     filas.forEach(f => {
+        const ingNombre = f.querySelector(".select-ingrediente").value;
+        const cantidad = parseFloat(f.querySelector(".input-cantidad-ing").value) || 0;
+        const unidadReceta = f.querySelector(".select-unidad-receta").value;
+        
         ingredientes.push({
-            nombre: f.querySelector(".select-ingrediente").value,
-            cantidad: parseFloat(f.querySelector(".input-cantidad-ing").value),
-            unidad: f.querySelector(".select-unidad-receta").value
+            nombre: ingNombre,
+            cantidad: cantidad,
+            unidad: unidadReceta
         });
+
+        const insumo = inventario.find(i => i.nombre === ingNombre);
+        if (insumo && insumo.precioCompra > 0) {
+            const precioUnitarioBase = insumo.precioCompra / insumo.cantidadBase;
+            let cantidadEnBase = cantidad;
+            
+            if ((unidadReceta === 'g' && insumo.unidad === 'kg') || (unidadReceta === 'ml' && insumo.unidad === 'l')) {
+                cantidadEnBase = cantidad / 1000;
+            } else if ((unidadReceta === 'kg' && insumo.unidad === 'g') || (unidadReceta === 'l' && insumo.unidad === 'ml')) {
+                cantidadEnBase = cantidad * 1000;
+            }
+            costoTotalCalculado += (cantidadEnBase * precioUnitarioBase);
+        }
     });
 
     let recetas = API.obtener("recetas_dolce_vida") || [];
     const editId = form.getAttribute("data-edit-id");
 
     if (editId) {
-        recetas = recetas.map(r => r.id == editId ? { id: parseInt(editId), nombre, porciones, ingredientes, precioVenta } : r);
+        recetas = recetas.map(r => r.id == editId ? { id: parseInt(editId), nombre, porciones, ingredientes, precioVenta, costoTotal: costoTotalCalculado } : r);
     } else {
-        recetas.push({ id: Date.now(), nombre, porciones, ingredientes, precioVenta });
+        recetas.push({ id: Date.now(), nombre, porciones, ingredientes, precioVenta, costoTotal: costoTotalCalculado });
     }
 
     API.guardar("recetas_dolce_vida", recetas);
