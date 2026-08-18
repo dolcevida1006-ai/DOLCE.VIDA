@@ -2,6 +2,33 @@ const EQUIVALENCIAS_SUPER = { 'g': 1, 'kg': 1000, 'ml': 1, 'l': 1000, 'unidades'
 
 document.addEventListener("DOMContentLoaded", () => {
     cargarInventario();
+
+    // 🔍 Detección y limpieza inmediata de la bandera Poka-Yoke de inventario (Blindado)
+    const insumoErrorCrudo = API.obtener("resaltar_insumo_error");
+    if (insumoErrorCrudo) {
+        API.eliminar("resaltar_insumo_error"); // Limpiamos bandera de inmediato
+
+        const insumoErrorNombre = String(insumoErrorCrudo).toLowerCase();
+
+        setTimeout(() => {
+            const inventario = API.obtener("inventario_dolce_vida") || [];
+            const contenedoresSwipe = document.querySelectorAll(".swipe-container");
+            
+            contenedoresSwipe.forEach((el, index) => {
+                const insumo = inventario[index];
+                if (insumo && insumo.nombre && insumo.nombre.toLowerCase() === insumoErrorNombre) {
+                    const card = el.querySelector(".card");
+                    if (card) {
+                        card.style.border = "3px solid #d90429";
+                        card.style.borderRadius = "10px";
+                        card.style.background = "#fff0f3";
+                        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
+            });
+        }, 300);
+    }
+
     const form = document.getElementById("form-nuevo-insumo");
     if (form) {
         form.addEventListener("submit", (e) => {
