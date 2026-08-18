@@ -16,26 +16,39 @@ function inicializarModal() {
 
     if (btnAbrir) btnAbrir.addEventListener("click", () => {
         const form = document.getElementById("form-nueva-receta");
-        form.removeAttribute("data-edit-id");
-        form.reset();
-        document.getElementById("receta-porciones").value = 1;
-        document.getElementById("contenedor-insumos-dinamicos").innerHTML = "";
+        if (form) {
+            form.removeAttribute("data-edit-id");
+            form.reset();
+        }
+        const porcionesInput = document.getElementById("receta-porciones");
+        if (porcionesInput) porcionesInput.value = 1;
+        
+        const contenedorInsumos = document.getElementById("contenedor-insumos-dinamicos");
+        if (contenedorInsumos) contenedorInsumos.innerHTML = "";
+        
         agregarFilaIngrediente();
-        modal.classList.add("open");
+        if (modal) modal.classList.add("open");
     });
-    if (btnCerrar) btnCerrar.addEventListener("click", () => modal.classList.remove("open"));
+    if (btnCerrar && modal) btnCerrar.addEventListener("click", () => modal.classList.remove("open"));
 }
 
 function inicializarEventos() {
-    document.getElementById("btn-agregar-ingrediente").addEventListener("click", () => agregarFilaIngrediente());
-    document.getElementById("form-nueva-receta").addEventListener("submit", (e) => {
-        e.preventDefault();
-        guardarReceta();
-    });
+    const btnAgregar = document.getElementById("btn-agregar-ingrediente");
+    if (btnAgregar) btnAgregar.addEventListener("click", () => agregarFilaIngrediente());
+    
+    const formReceta = document.getElementById("form-nueva-receta");
+    if (formReceta) {
+        formReceta.addEventListener("submit", (e) => {
+            e.preventDefault();
+            guardarReceta();
+        });
+    }
 }
 
 function agregarFilaIngrediente(datos = null) {
     const contenedor = document.getElementById("contenedor-insumos-dinamicos");
+    if (!contenedor) return;
+    
     const inventario = API.obtener("inventario_dolce_vida") || [];
     
     if (inventario.length === 0) {
@@ -46,7 +59,6 @@ function agregarFilaIngrediente(datos = null) {
     const fila = document.createElement("div");
     fila.className = "fila-ingrediente";
     
-    // Estructura corregida: inputs con tamaño flexible para que la X siempre sea visible
     fila.innerHTML = `
         <select class="select-ingrediente" onchange="adaptarUnidadesReceta(this); calcularCostoReceta();" style="flex: 2;">
             ${inventario.map(ins => `<option value="${ins.nombre}" data-familia="${obtenerFamilia(ins.unidad)}">${ins.nombre}</option>`).join('')}
@@ -88,23 +100,17 @@ window.calcularCostoReceta = () => {
     filas.forEach(f => {
         const nombre = f.querySelector(".select-ingrediente").value;
         const cantidad = parseFloat(f.querySelector(".input-cantidad-ing").value) || 0;
-        const unidadReceta = f.querySelector(".select-unidad-receta").value; // g, kg, ml, l, pzas
+        const unidadReceta = f.querySelector(".select-unidad-receta").value;
         
         const insumo = inventario.find(i => i.nombre === nombre);
         
         if (insumo && insumo.precioCompra > 0) {
-            // Precio por unidad base del inventario (ej: $20 por 1000g o 1kg)
             const precioUnitarioBase = insumo.precioCompra / insumo.cantidadBase;
-            
-            // Convertimos lo que pide la receta a la unidad base del inventario
             let cantidadEnBase = cantidad;
             
-            // Si la receta pide g y el inventario usa kg, o receta ml y el inventario usa l
             if ((unidadReceta === 'g' && insumo.unidad === 'kg') || (unidadReceta === 'ml' && insumo.unidad === 'l')) {
                 cantidadEnBase = cantidad / 1000;
-            } 
-            // Si la receta pide kg y el inventario usa g, o receta l y el inventario usa ml
-            else if ((unidadReceta === 'kg' && insumo.unidad === 'g') || (unidadReceta === 'l' && insumo.unidad === 'ml')) {
+            } else if ((unidadReceta === 'kg' && insumo.unidad === 'g') || (unidadReceta === 'l' && insumo.unidad === 'ml')) {
                 cantidadEnBase = cantidad * 1000;
             }
             
@@ -113,8 +119,11 @@ window.calcularCostoReceta = () => {
     });
 
     const sugerido = costoTotal * 1.70;
-    document.getElementById("display-costo-receta").innerText = `Costo producción: $${costoTotal.toFixed(2)}`;
-    document.getElementById("display-sugerido").innerText = `Precio sugerido (+70%): $${sugerido.toFixed(2)}`;
+    const displayCosto = document.getElementById("display-costo-receta");
+    const displaySugerido = document.getElementById("display-sugerido");
+    
+    if (displayCosto) displayCosto.innerText = `Costo producción: $${costoTotal.toFixed(2)}`;
+    if (displaySugerido) displaySugerido.innerText = `Precio sugerido (+70%): $${sugerido.toFixed(2)}`;
 };
 
 window.guardarReceta = () => {
@@ -150,6 +159,8 @@ window.guardarReceta = () => {
 
 window.mostrarRecetas = () => {
     const cont = document.getElementById("lista-recetas");
+    if (!cont) return;
+    
     let recetas = API.obtener("recetas_dolce_vida") || [];
     const inventario = API.obtener("inventario_dolce_vida") || [];
     const nombresInventario = inventario.map(i => i.nombre);
@@ -183,8 +194,10 @@ window.handleTouchStart = (e) => touchStartX = e.touches[0].screenX;
 window.handleTouchEnd = (e, id) => {
     const delta = touchStartX - e.changedTouches[0].screenX;
     const container = document.getElementById(`receta-${id}`);
-    if (delta > 50) container.classList.add('swiped');
-    else if (delta < -50) container.classList.remove('swiped');
+    if (container) {
+        if (delta > 50) container.classList.add('swiped');
+        else if (delta < -50) container.classList.remove('swiped');
+    }
 };
 
 window.toggleIngredientes = (id) => {
@@ -194,23 +207,33 @@ window.toggleIngredientes = (id) => {
 
 window.abrirEditarReceta = (id) => {
     const r = API.obtener("recetas_dolce_vida").find(x => x.id === id);
-    if(!r) return;
+    if (!r) return;
     
-    document.getElementById("receta-nombre").value = r.nombre;
-    document.getElementById("receta-porciones").value = r.porciones || 1;
-    document.getElementById("receta-precio-venta").value = r.precioVenta || 0;
+    const inputNombre = document.getElementById("receta-nombre");
+    const inputPorciones = document.getElementById("receta-porciones");
+    const inputPrecioVenta = document.getElementById("receta-precio-venta");
+    const contenedorInsumos = document.getElementById("contenedor-insumos-dinamicos");
     
-    document.getElementById("contenedor-insumos-dinamicos").innerHTML = "";
+    if (inputNombre) inputNombre.value = r.nombre;
+    if (inputPorciones) inputPorciones.value = r.porciones || 1;
+    if (inputPrecioVenta) inputPrecioVenta.value = r.precioVenta || 0;
+    
+    if (contenedorInsumos) contenedorInsumos.innerHTML = "";
     
     // Cargar ingredientes
     r.ingredientes.forEach(i => agregarFilaIngrediente(i));
     
-    // AQUÍ ESTÁ LA CORRECCIÓN: 
-    // Forzamos el cálculo inmediatamente después de cargar los ingredientes
     calcularCostoReceta();
     
-    document.getElementById("form-nueva-receta").setAttribute("data-edit-id", id);
-    document.getElementById("modal-receta").classList.add("open");
+    const form = document.getElementById("form-nueva-receta");
+    if (form) {
+        form.setAttribute("data-edit-id", id);
+    }
+    
+    const modal = document.getElementById("modal-receta");
+    if (modal) {
+        modal.classList.add("open");
+    }
 };
 
 window.eliminarReceta = (id) => {
