@@ -39,7 +39,7 @@ function agregarFilaProducto(datos = null) {
                 </option>
             `).join('')}
         </select>
-        <input type="number" class="input-cant" placeholder="Cant." value="${cantidad}" oninput="calcularTotal()" style="flex: 0.5;">
+        <input type="number" class="input-cant" placeholder="Cant." step="any" value="${cantidad}" oninput="calcularTotal()" style="flex: 0.5;">
         <div style="width: 100%;">
             <small style="color: #ff758f;">Sugerido: $<span class="txt-sugerido">0.00</span></small>
             <input type="number" class="input-precio" placeholder="Precio Final $" value="${precio}" oninput="calcularTotal()" style="width: 100%;">
@@ -309,10 +309,21 @@ function construirObjetoPedido() {
                 costoPorPorcion = costoTotalReceta / (receta.porciones || 1);
             }
 
+            // Lectura de la cantidad ingresada y cálculo de piezas exactas redondeadas hacia arriba
+            let cantidadIngresada = parseFloat(f.querySelector(".input-cant").value) || 0;
+            const porcionesReceta = receta ? (receta.porciones || 1) : 1;
+            
+            let cantidadPiezas = cantidadIngresada;
+            if (cantidadIngresada > 0 && cantidadIngresada < 1) {
+                cantidadPiezas = Math.ceil(cantidadIngresada * porcionesReceta);
+            } else {
+                cantidadPiezas = Math.ceil(cantidadIngresada);
+            }
+
             productosList.push({
                 recetaId: parseInt(select.value),
                 nombre: select.options[select.selectedIndex].text.trim(),
-                cantidad: parseInt(f.querySelector(".input-cant").value) || 0,
+                cantidad: cantidadPiezas,
                 precioFinal: parseFloat(f.querySelector(".input-precio").value) || 0,
                 costoProduccion: costoPorPorcion
             });
