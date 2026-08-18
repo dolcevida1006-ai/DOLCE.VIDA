@@ -23,7 +23,6 @@ function inicializarPantallaInicio() {
     const inventario = API.obtener("inventario_dolce_vida") || [];
     const recetas = API.obtener("recetas_dolce_vida") || [];
 
-    // Busca esta línea en tu js/main.js (dentro de inicializarPantallaInicio)
     const pendientes = pedidos.filter(p => p.estado !== "Entregado" && p.estado !== "Cotización");
     
     pendientes.sort((a, b) => new Date(`${a.fecha}T${a.hora}`) - new Date(`${b.fecha}T${b.hora}`));
@@ -47,7 +46,6 @@ function inicializarPantallaInicio() {
     let analisisPedidos = [];
     
     pendientes.forEach(pedido => {
-        // Aseguramos compatibilidad: si no hay array 'productos', usamos el objeto único
         const listaProductos = pedido.productos || [{ recetaId: pedido.recetaId, nombre: pedido.producto, cantidad: pedido.cantidad, precioFinal: 0 }];
         
         let costoProduccionTotal = 0;
@@ -59,19 +57,32 @@ function inicializarPantallaInicio() {
             const receta = recetas.find(r => r.id === item.recetaId || r.nombre.toLowerCase() === (item.nombre || "").toLowerCase());
             if (!receta) return;
 
-            const factorEscala = item.cantidad / (receta.porciones || 1);
-            totalIngredientesGlobal += receta.ingredientes.length;
+            const porcionesReceta = receta.porciones || 1;
+            let cantidadPiezas = Number(item.cantidad) || 0;
+            
+            // Si colocaron un decimal de proporción (ej. 0.666), lo convertimos a piezas reales y redondeamos arriba
+            if (cantidadPiezas > 0 && cantidadPiezas < 1) {
+                cantidadPiezas = Math.ceil(cantidadPiezas * porcionesReceta);
+            } else {
+                cantidadPiezas = Math.ceil(cantidadPiezas);
+            }
 
-            // --- CÁLCULO DE COSTO ---
-            // Usamos el costo guardado en el objeto producto si existe, si no, calculamos al vuelo para compatibilidad
-            costoProduccionTotal += (item.costoProduccion || 0) * item.cantidad;
+            // Actualizamos la cantidad dentro del item temporalmente para que renderice el número entero limpio
+            item.cantidad = cantidadPiezas;
+
+            // Costo de producción basado en las piezas reales
+            const costoBaseReceta = receta.costoTotal !== undefined ? receta.costoTotal : 0;
+            const costoUnitarioPorcion = costoBaseReceta / porcionesReceta;
+            costoProduccionTotal += costoUnitarioPorcion * cantidadPiezas;
+
+            const factorEscalaInventario = cantidadPiezas / porcionesReceta;
+            totalIngredientesGlobal += receta.ingredientes.length;
 
             receta.ingredientes.forEach(ing => {
                 const nombreClave = ing.nombre.toLowerCase();
                 const insumo = inventario.find(i => i.nombre.toLowerCase() === nombreClave);
                 
-                // --- LÓGICA DE STOCK (Mantenemos tu motor intacta) ---
-                const necesidadReal = (ing.cantidad * factorEscala) * (EQUIVALENCIAS_MOTOR[ing.unidad.toLowerCase()] || 1);
+                const necesidadReal = (ing.cantidad * factorEscalaInventario) * (EQUIVALENCIAS_MOTOR[ing.unidad.toLowerCase()] || 1);
                 const insumoEnAlmacen = stockSimulado[nombreClave];
 
                 if (insumoEnAlmacen) {
@@ -97,7 +108,7 @@ function inicializarPantallaInicio() {
             pedido: pedido,
             costoProduccion: costoProduccionTotal,
             porcentaje: Math.min(100, Math.max(0, porcentajeFinal)),
-            faltantes: [...new Set(listaFaltantesGlobal)] // Quitamos duplicados
+            faltantes: [...new Set(listaFaltantesGlobal)]
         });
     });
 
@@ -126,7 +137,6 @@ function renderizarPedidos(analisisPedidos) {
         const porcentaje = Math.round(item.porcentaje);
         const faltantes = item.faltantes;
         
-        // Sumamos el costo guardado en cada producto del pedido
         const costoProduccion = item.costoProduccion || 0;
         const precioVenta = parseFloat(pedido.total || 0);
         const utilidad = precioVenta - costoProduccion;
@@ -182,7 +192,6 @@ function renderizarPedidos(analisisPedidos) {
             textoAlertaFaltantes = `<span style="color: #00b894; font-weight: bold; font-size: 0.78rem; float: right;">✅ Insumos Listos</span>`;
         }
 
-        // Definimos el nombre del producto (soporta estructura simple o múltiple)
         const nombreDisplay = pedido.productos ? pedido.productos.map(p => `${p.cantidad} ${p.nombre}`).join(', ') : pedido.producto;
         
         card.innerHTML = `
@@ -297,7 +306,7 @@ window.cambiarEstadoPedido = function(id, nuevoEstado) {
     if (!pedidoEncontrado) return;
 
     if (nuevoEstado === "Entregado") {
-        let costoTotalCalculado = 0; // <--- NUEVO
+        let costoTotalCalculado = 0;
         const listaProductos = pedidoEncontrado.productos || [{
             recetaId: pedidoEncontrado.recetaId,
             nombre: pedidoEncontrado.producto,
@@ -309,19 +318,25 @@ window.cambiarEstadoPedido = function(id, nuevoEstado) {
 
             if (receta) {
                 const porcionesReceta = receta.porciones || 1;
-                const factorEscala = item.cantidad / porcionesReceta;
+                let cantidadPiezas = Number(item.cantidad) || 0;
+                
+                if (cantidadPiezas > 0 && cantidadPiezas < 1) {
+                    cantidadPiezas = Math.ceil(cantidadPiezas * porcionesReceta);
+                } else {
+                    cantidadPiezas = Math.ceil(cantidadPiezas);
+                }
+
+                const costoBaseReceta = receta.costoTotal !== undefined ? receta.costoTotal : 0;
+                const costoUnitarioPorcion = costoBaseReceta / porcionesReceta;
+                costoTotalCalculado += costoUnitarioPorcion * cantidadPiezas;
+
+                const factorEscalaInventario = cantidadPiezas / porcionesReceta;
 
                 receta.ingredientes.forEach(ing => {
                     const nombreIng = ing.nombre.toLowerCase();
-                    let cantidadNecesaria = ing.cantidad * factorEscala;
+                    let cantidadNecesaria = ing.cantidad * factorEscalaInventario;
                     let insumoStock = inventario.find(i => i.nombre.toLowerCase() === nombreIng);
 
-                    // --- CÁLCULO DE COSTO ---
-                    if (insumoStock && insumoStock.precioUnitario) {
-                        costoTotalCalculado += (ing.cantidad * factorEscala) * insumoStock.precioUnitario;
-                    }
-
-                    // --- LÓGICA DE STOCK ---
                     if (insumoStock) {
                         const esPieza = insumoStock.unidad.toLowerCase() === 'unidades' || insumoStock.unidad.toLowerCase() === 'pzas';
                         if (esPieza) {
@@ -336,8 +351,7 @@ window.cambiarEstadoPedido = function(id, nuevoEstado) {
             }
         });
         
-        // GUARDAMOS EL COSTO CONGELADO EN EL PEDIDO
-        pedidoEncontrado.costoProduccion = costoTotalCalculado; // <--- GUARDADO
+        pedidoEncontrado.costoProduccion = costoTotalCalculado;
         API.guardar("inventario_dolce_vida", inventario);
     }
 
@@ -357,6 +371,7 @@ function invertirFecha(fecha) {
     const partes = fecha.split("-");
     return `${partes[2]}/${partes[1]}/${partes[0]}`;
 }
+
 window.descargarDatos = function() {
     const llaves = ["pedidos_dolce_vida", "inventario_dolce_vida", "recetas_dolce_vida"];
     let backup = {};
@@ -398,7 +413,6 @@ window.eliminarPedido = function(id) {
         pedidos = pedidos.filter(p => p.id !== id);
         
         API.guardar("pedidos_dolce_vida", pedidos);
-        
         inicializarPantallaInicio();
         
         if (typeof mostrarGloboNotificacion === 'function') {
